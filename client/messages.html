@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Messages - Land Mart</title>
+    <link rel="stylesheet" href="styles/main.css">
+</head>
+<body>
+    <header>
+        <nav>
+            <div class="logo">Land Mart</div>
+            <ul>
+                <li><a href="index.html">Home</a></li>
+                <li><a href="properties.html">Properties</a></li>
+                <li><a href="add-property.html">Sell Property</a></li>
+                <li><a href="unified-dashboard.html">Dashboard</a></li>
+                <li><a href="messages.html" class="active">Messages</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <main>
+        <section class="messages-container">
+            <h1>Messages</h1>
+            
+            <div class="messages-layout">
+                <div class="conversations-list">
+                    <h2>Conversations</h2>
+                    <div id="conversations-container">
+                        <!-- Conversations will be loaded here dynamically -->
+                        <p>Loading conversations...</p>
+                    </div>
+                </div>
+                
+                <div class="message-thread">
+                    <div class="message-header">
+                        <h2 id="conversation-title">Select a conversation</h2>
+                    </div>
+                    
+                    <div class="messages" id="messages-container">
+                        <!-- Messages will be loaded here dynamically -->
+                        <p>Select a conversation to view messages</p>
+                    </div>
+                    
+                    <div class="message-input" id="message-input-container" style="display: none;">
+                        <textarea id="message-textarea" placeholder="Type your message here..."></textarea>
+                        <button id="send-message-btn">Send</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <p>&copy; 2025 Land Mart. All rights reserved.</p>
+    </footer>
+
+    <script src="js/main.js"></script>
+    <script>
+        // Global variables
+        let currentUser = null;
+        let currentConversationUserId = null;
+        let currentPropertyId = null;
+        
+        // Load conversations when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            // Get current user from localStorage
+            currentUser = JSON.parse(localStorage.getItem('currentUser'));
+            if (!currentUser) {
+                alert('You must be logged in to view messages.');
+                window.location.href = 'login.html';
+                return;
+            }
+            
+            // Load conversations
+            loadConversations();
+        });
+        
+        // Load conversations from backend
+        async function loadConversations() {
+            try {
+                const apiBaseUrl = 'http://localhost:5500';
+                const response = await fetch(`${apiBaseUrl}/api/messages/conversation/${currentUser.id}`);
+                
+                if (!response.ok) {
+                    throw new Error('Failed to load conversations');
+                }
+                
+                const messages = await response.json();
+                
+                // Group messages by conversation partner
+                const conversations = groupMessagesByConversation(messages);
+                
+                // Display conversations
+                displayConversations(conversations);
+            } catch (error) {
+                console.error('Error loading conversations:', error);
+                document.getElementById('conversations-container').innerHTML = '<p>Error loading conversations. Please try again later.</p>';
+            }
+        }
+        
+        // Group messages by conversation partner
+        function groupMessagesByConversation(messages) {
+            const conversations = {};
+            
+            messages.forEach(message => {
+                // Determine the other user in the conversation
+                const otherUserId = message.senderId._id === currentUser.id ? message.receiverId._id : message.senderId._id;
+                const otherUserName = message.senderId._id === currentUser.id ? message.receiverId.name : message.senderId.name;
+                const otherUserEmail = message.senderId._id === currentUser.id ? message.receiverId.email : message.senderId.email;
+                
+                // Create conversation key
+                const conversationKey = otherUserId;
+                
+                // Initialize conversation if not exists
+                if (!conversations[conversationKey]) {
+                    conversations[conversationKey] = {
+                        userId: otherUserId,
+                        userName: otherUserName,
+                        userEmail: otherUserEmail,
+                        messages: [],
+                        lastMessage: null,
+                        lastMessageTime: null
+                    };
+                }
+                
+                // Add message to conversation
+                conversations[conversationKey].messages.push(message);
+                
+                // Update last message if this is newer
+                if (!conversations[conversationKey].lastMessageTime || 
+                    new Date(message.createdAt) > new Date(conversations[conversationKey].lastMessageTime)) {
+                    conversations[conversationKey].lastMessage = message.content;
+                    conversations[conversationKey].lastMessageTime = message.createdAt;
+                    if (message.propertyId) {
+                        conversations[conversationKey].propertyId = message.propertyId._id;
+                        conversations[conversationKey].propertyName = message.propertyId.title;
+                    }
+                }
+            });
+            
+            // Convert to array and sort by last message time
+            return Object.values(conversations).sort((a, b) => 
+                new Date(b.lastMessageTime) - new Date(a.lastMessageTime)
+            );
+        }
+        
+        // Display conversations in the UI
+        function displayConversations(conversations) {
+            const container = document.getElementById('conversations-container');
+            
+            if (conversations.length === 0) {
+                container.innerHTML = '<p>No conversations yet. Contact sellers to start a conversation.</p>';
+                return;
+            }
+            
+            container.innerHTML = '';
+            
+            conversations.forEach(conversation => {
+                const conversationElement = document.createElement('div');
+                conversationElement.className = 'conversation';
+                conversationElement.dataset.userId = conversation.userId;
+                
+                // Format last message time
+                const lastMessageDate = new Date(conversation.lastMessageTime);
+                const timeDiff = Math.floor((new Date() - lastMessageDate) / (1000 * 60 * 60 * 24));
+                let timeText;
+                if (timeDiff === 0) {
+                    timeText = 'Today';
+                } else if (timeDiff === 1) {
+                    timeText = 'Yesterday';
+                } else {
+                    timeText = `${timeDiff} days ago`;
+                }
+                
+                // Truncate last message
+                const truncatedMessage = conversation.lastMessage.length > 50 ? 
+                    conversation.lastMessage.substring(0, 50) + '...' : 
+                    conversation.lastMessage;
+                
+                conversationElement.innerHTML = `
+                    <div class="conversation-info">
+                        <h3>${conversation.userName}</h3>
+                        <p>${truncatedMessage}</p>
+                        ${conversation.propertyName ? `<div class="property-ref">About: ${conversation.propertyName}</div>` : ''}
+                    </div>
+                    <div class="conversation-time">${timeText}</div>
+                `;
+                
+                conversationElement.addEventListener('click', () => {
+                    loadConversation(conversation.userId, conversation.propertyId);
+                });
+                
+                container.appendChild(conversationElement);
+            });
+        }
+        
+        // Load a specific conversation
+        async function loadConversation(userId, propertyId) {
+            try {
+                // Highlight selected conversation
+                document.querySelectorAll('.conversation').forEach(conv => {
+                    conv.classList.remove('active');
+                });
+                document.querySelector(`.conversation[data-user-id="${userId}"]`).classList.add('active');
+                
+                // Set current conversation
+                currentConversationUserId = userId;
+                currentPropertyId = propertyId;
+                
+                // Update conversation title
+                const conversationTitle = document.querySelector(`.conversation[data-user-id="${userId}"] .conversation-info h3`).textContent;
+                document.getElementById('conversation-title').textContent = conversationTitle;
+                
+                // Show message input
+                document.getElementById('message-input-container').style.display = 'flex';
+                
+                // Load messages for this conversation
+                const apiBaseUrl = 'http://localhost:5500';
+                const response = await fetch(`${apiBaseUrl}/api/messages/conversation/${userId}`);
+                
+                if (!response.ok) {
+                    throw new Error('Failed to load conversation');
+                }
+                
+                const messages = await response.json();
+                
+                // Display messages
+                displayMessages(messages);
+            } catch (error) {
+                console.error('Error loading conversation:', error);
+                document.getElementById('messages-container').innerHTML = '<p>Error loading conversation. Please try again later.</p>';
+            }
+        }
+        
+        // Display messages in the UI
+        function displayMessages(messages) {
+            const container = document.getElementById('messages-container');
+            container.innerHTML = '';
+            
+            if (messages.length === 0) {
+                container.innerHTML = '<p>No messages in this conversation yet.</p>';
+                return;
+            }
+            
+            messages.forEach(message => {
+                const messageElement = document.createElement('div');
+                messageElement.className = `message ${message.senderId._id === currentUser.id ? 'sent' : 'received'}`;
+                
+                // Format message time
+                const messageDate = new Date(message.createdAt);
+                const timeString = messageDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                const dateString = messageDate.toLocaleDateString();
+                
+                messageElement.innerHTML = `
+                    <div class="message-content">
+                        <p>${message.content}</p>
+                    </div>
+                    <div class="message-time">${dateString} at ${timeString}</div>
+                    ${message.propertyId ? `<div class="property-link">Regarding: ${message.propertyId.title}</div>` : ''}
+                `;
+                
+                container.appendChild(messageElement);
+            });
+            
+            // Scroll to bottom
+            container.scrollTop = container.scrollHeight;
+        }
+        
+        // Send a new message
+        async function sendMessage() {
+            const messageTextarea = document.getElementById('message-textarea');
+            const content = messageTextarea.value.trim();
+            
+            if (!content) {
+                alert('Please enter a message.');
+                return;
+            }
+            
+            if (!currentConversationUserId) {
+                alert('Please select a conversation first.');
+                return;
+            }
+            
+            try {
+                const messageData = {
+                    senderId: currentUser.id,
+                    receiverId: currentConversationUserId,
+                    content: content,
+                    propertyId: currentPropertyId || null
+                };
+                
+                const apiBaseUrl = 'http://localhost:5500';
+                const response = await fetch(`${apiBaseUrl}/api/messages`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(messageData)
+                });
+                
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.message || 'Failed to send message');
+                }
+                
+                const newMessage = await response.json();
+                
+                // Clear input
+                messageTextarea.value = '';
+                
+                // Add message to display
+                const container = document.getElementById('messages-container');
+                const messageElement = document.createElement('div');
+                messageElement.className = 'message sent';
+                
+                const messageDate = new Date(newMessage.createdAt);
+                const timeString = messageDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                const dateString = messageDate.toLocaleDateString();
+                
+                messageElement.innerHTML = `
+                    <div class="message-content">
+                        <p>${newMessage.content}</p>
+                    </div>
+                    <div class="message-time">${dateString} at ${timeString}</div>
+                    ${newMessage.propertyId ? `<div class="property-link">Regarding: ${newMessage.propertyId.title}</div>` : ''}
+                `;
+                
+                container.appendChild(messageElement);
+                
+                // Scroll to bottom
+                container.scrollTop = container.scrollHeight;
+                
+                // Reload conversations to update last message
+                loadConversations();
+            } catch (error) {
+                console.error('Error sending message:', error);
+                alert('Error sending message: ' + error.message);
+            }
+        }
+        
+        // Add event listener for send button
+        document.addEventListener('DOMContentLoaded', function() {
+            const sendButton = document.getElementById('send-message-btn');
+            if (sendButton) {
+                sendButton.addEventListener('click', sendMessage);
+            }
+            
+            // Also send on Enter key (but allow Shift+Enter for new lines)
+            const messageTextarea = document.getElementById('message-textarea');
+            if (messageTextarea) {
+                messageTextarea.addEventListener('keydown', function(e) {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        sendMessage();
+                    }
+                });
+            }
+        });
+    </script>
+</body>
+</html>

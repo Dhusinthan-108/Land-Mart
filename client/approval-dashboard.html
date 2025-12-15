@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Unified Dashboard - Land Mart</title>
+    <link rel="stylesheet" href="styles/main.css">
+</head>
+<body>
+    <header>
+        <nav>
+            <div class="logo">Land Mart</div>
+            <ul>
+                <li><a href="index.html">Home</a></li>
+                <li><a href="properties.html">Properties</a></li>
+                <li><a href="add-property.html">Sell Property</a></li>
+                <li><a href="unified-dashboard.html">Dashboard</a></li>
+                <li><a href="login.html">Login</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <main>
+        <section class="unified-dashboard">
+            <h1>Unified Dashboard</h1>
+            
+            <div class="pending-properties">
+                <h2>Pending Approvals</h2>
+                
+                <div class="property-card pending">
+                    <img src="images/property4.jpg" alt="Property 4">
+                    <h3>Desert Oasis</h3>
+                    <p>Beautiful desert property with mountain views and natural springs.</p>
+                    <div class="property-details">
+                        <span>20 acres</span>
+                        <span>$150,000</span>
+                    </div>
+                    <div class="approval-actions">
+                        <button class="approve-btn">Approve</button>
+                        <button class="reject-btn">Reject</button>
+                    </div>
+                </div>
+                
+                <div class="property-card pending">
+                    <img src="images/property5.jpg" alt="Property 5">
+                    <h3>Forest Retreat</h3>
+                    <p>Dense forest property perfect for eco-lodge development.</p>
+                    <div class="property-details">
+                        <span>15 acres</span>
+                        <span>$275,000</span>
+                    </div>
+                    <div class="approval-actions">
+                        <button class="approve-btn">Approve</button>
+                        <button class="reject-btn">Reject</button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="approved-properties">
+                <h2>Recently Approved</h2>
+                
+                <div class="property-card approved">
+                    <img src="images/property1.jpg" alt="Property 1">
+                    <h3>Mountain View Ranch</h3>
+                    <p>Stunning mountain property with panoramic views and cabin.</p>
+                    <div class="property-details">
+                        <span>10 acres</span>
+                        <span>$350,000</span>
+                    </div>
+                    <div class="status">Approved</div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <p>&copy; 2025 Land Mart. All rights reserved.</p>
+    </footer>
+
+    <script src="js/main.js"></script>
+</body>
+</html>

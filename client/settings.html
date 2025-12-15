@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Settings - Land Mart</title>
+    <link rel="stylesheet" href="styles/main.css">
+</head>
+<body>
+    <header>
+        <nav>
+            <div class="logo">Land Mart</div>
+            <ul>
+                <li><a href="index.html">Home</a></li>
+                <li><a href="properties.html">Properties</a></li>
+                <li><a href="add-property.html">Sell Property</a></li>
+                <li><a href="unified-dashboard.html">Dashboard</a></li>
+                <li><a href="settings.html">Settings</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <main>
+        <section class="settings-container">
+            <h1>Account Settings</h1>
+            
+            <div class="settings-layout">
+                <div class="settings-nav">
+                    <ul>
+                        <li class="active"><a href="#profile">Profile</a></li>
+                        <li><a href="#notifications">Notifications</a></li>
+                        <li><a href="#privacy">Privacy</a></li>
+                        <li><a href="#security">Security</a></li>
+                        <li><a href="#billing">Billing</a></li>
+                    </ul>
+                </div>
+                
+                <div class="settings-content">
+                    <div id="profile" class="settings-section">
+                        <h2>Profile Information</h2>
+                        <form id="profile-form">
+                            <div class="form-group">
+                                <label for="full-name">Full Name</label>
+                                <input type="text" id="full-name" name="full-name" value="John Doe">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="email">Email Address</label>
+                                <input type="email" id="email" name="email" value="john.doe@example.com">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="phone">Phone Number</label>
+                                <input type="tel" id="phone" name="phone" value="+1 (555) 123-4567">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="bio">Bio</label>
+                                <textarea id="bio" name="bio" rows="4">Real estate investor specializing in land properties.</textarea>
+                            </div>
+                            
+                            <button type="submit" class="btn-primary">Save Changes</button>
+                        </form>
+                    </div>
+                    
+                    <div id="notifications" class="settings-section" style="display: none;">
+                        <h2>Notification Preferences</h2>
+                        <form id="notifications-form">
+                            <div class="form-group">
+                                <label>
+                                    <input type="checkbox" name="email-notifications" checked> Email Notifications
+                                </label>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>
+                                    <input type="checkbox" name="sms-notifications"> SMS Notifications
+                                </label>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>
+                                    <input type="checkbox" name="property-updates" checked> Property Updates
+                                </label>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>
+                                    <input type="checkbox" name="message-notifications" checked> Message Notifications
+                                </label>
+                            </div>
+                            
+                            <button type="submit" class="btn-primary">Save Preferences</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <p>&copy; 2025 Land Mart. All rights reserved.</p>
+    </footer>
+
+    <script src="js/main.js"></script>
+</body>
+</html>

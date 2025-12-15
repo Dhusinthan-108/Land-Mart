@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Notifications - Land Mart</title>
+    <link rel="stylesheet" href="styles/main.css">
+</head>
+<body>
+    <header>
+        <nav>
+            <div class="logo">Land Mart</div>
+            <ul>
+                <li><a href="index.html">Home</a></li>
+                <li><a href="properties.html">Properties</a></li>
+                <li><a href="add-property.html">Sell Property</a></li>
+                <li><a href="unified-dashboard.html">Dashboard</a></li>
+                <li><a href="notifications.html">Notifications</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <main>
+        <section class="notifications-container">
+            <h1>Notifications</h1>
+            
+            <div class="notification-filters">
+                <button class="filter-active">All</button>
+                <button>Unread</button>
+                <button>Property Updates</button>
+                <button>Messages</button>
+                <button>Payments</button>
+            </div>
+            
+            <div class="notifications-list">
+                <div class="notification unread">
+                    <div class="notification-icon">
+                        <span>🔔</span>
+                    </div>
+                    <div class="notification-content">
+                        <h3>Your property "Mountain View Ranch" has been approved</h3>
+                        <p>Congratulations! Your property listing has been reviewed and approved by our team.</p>
+                        <div class="notification-time">2 hours ago</div>
+                    </div>
+                </div>
+                
+                <div class="notification unread">
+                    <div class="notification-icon">
+                        <span>💬</span>
+                    </div>
+                    <div class="notification-content">
+                        <h3>New message from John Smith</h3>
+                        <p>John Smith sent you a message about your Oceanfront Land property.</p>
+                        <div class="notification-time">5 hours ago</div>
+                    </div>
+                </div>
+                
+                <div class="notification">
+                    <div class="notification-icon">
+                        <span>💰</span>
+                    </div>
+                    <div class="notification-content">
+                        <h3>Payment received for Forest Retreat</h3>
+                        <p>You have received a payment of $275,000 for your property Forest Retreat.</p>
+                        <div class="notification-time">1 day ago</div>
+                    </div>
+                </div>
+                
+                <div class="notification">
+                    <div class="notification-icon">
+                        <span>🔔</span>
+                    </div>
+                    <div class="notification-content">
+                        <h3>Your property "Desert Oasis" is pending approval</h3>
+                        <p>Your property listing is currently under review. We'll notify you once it's approved.</p>
+                        <div class="notification-time">2 days ago</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="notifications-actions">
+                <button>Mark all as read</button>
+                <button>Clear all notifications</button>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <p>&copy; 2025 Land Mart. All rights reserved.</p>
+    </footer>
+
+    <script src="js/main.js"></script>
+</body>
+</html>

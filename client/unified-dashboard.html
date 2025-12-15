@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Unified Dashboard - Land Mart</title>
+    <link rel="stylesheet" href="styles/main.css">
+</head>
+<body>
+    <header>
+        <nav>
+            <div class="logo">Land Mart</div>
+            <ul>
+                <li><a href="index.html">Home</a></li>
+                <li><a href="properties.html">Properties</a></li>
+                <li><a href="add-property.html">Sell Property</a></li>
+                <li><a href="unified-dashboard.html" class="active">Dashboard</a></li>
+                <li><a href="login.html">Login</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <main>
+        <section class="unified-dashboard">
+            <h1>My Dashboard</h1>
+            
+            <!-- User Info Section -->
+            <div class="user-info">
+                <h2>Welcome, <span id="user-name">User</span>!</h2>
+                <p>Account Type: <span id="user-role">Role</span></p>
+            </div>
+            
+            <!-- Dashboard Tabs -->
+            <div class="dashboard-tabs">
+                <button class="tab-active" onclick="switchTab('overview')">Overview</button>
+                <button onclick="switchTab('my-properties')">My Properties</button>
+                <button onclick="switchTab('saved-properties')">Saved Properties</button>
+                <button onclick="switchTab('messages')">Messages</button>
+                <button onclick="switchTab('settings')">Settings</button>
+            </div>
+            
+            <!-- Overview Tab -->
+            <div id="overview-tab" class="tab-content active">
+                <div class="dashboard-stats">
+                    <div class="stat-card">
+                        <h3>Total Properties</h3>
+                        <p id="total-properties">0</p>
+                        <p>Your listed properties</p>
+                    </div>
+                    
+                    <div class="stat-card">
+                        <h3>Saved Properties</h3>
+                        <p id="saved-properties-count">0</p>
+                        <p>Favorites & bookmarks</p>
+                    </div>
+                    
+                    <div class="stat-card">
+                        <h3>Pending Approvals</h3>
+                        <p id="pending-approvals">0</p>
+                        <p>Properties awaiting review</p>
+                    </div>
+                </div>
+                
+                <div class="dashboard-actions">
+                    <button onclick="location.href='add-property.html'">Add New Property</button>
+                    <button onclick="location.href='properties.html'">Browse Properties</button>
+                    <button onclick="location.href='messages.html'">View Messages</button>
+                </div>
+                
+                <div class="recent-activity">
+                    <h2>Recent Activity</h2>
+                    <ul id="activity-list">
+                        <li>No recent activity</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <!-- My Properties Tab -->
+            <div id="my-properties-tab" class="tab-content">
+                <h2>My Properties</h2>
+                <div id="my-properties-container" class="properties-grid">
+                    <!-- Properties will be loaded here dynamically -->
+                </div>
+            </div>
+            
+            <!-- Saved Properties Tab -->
+            <div id="saved-properties-tab" class="tab-content">
+                <h2>Saved Properties</h2>
+                <div id="saved-properties-container" class="properties-grid">
+                    <!-- Saved properties will be loaded here dynamically -->
+                </div>
+            </div>
+            
+            <!-- Messages Tab -->
+            <div id="messages-tab" class="tab-content">
+                <h2>Messages</h2>
+                <div id="messages-container">
+                    <!-- Messages will be loaded here dynamically -->
+                </div>
+            </div>
+            
+            <!-- Settings Tab -->
+            <div id="settings-tab" class="tab-content">
+                <h2>User Settings</h2>
+                <div class="settings-content">
+                    <div id="profile" class="settings-section">
+                        <h3>Profile Information</h3>
+                        <form id="profile-form">
+                            <div class="form-group">
+                                <label for="settings-full-name">Full Name</label>
+                                <input type="text" id="settings-full-name" name="full-name" placeholder="Enter your full name">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="settings-email">Email Address</label>
+                                <input type="email" id="settings-email" name="email" placeholder="Enter your email">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="settings-phone">Phone Number</label>
+                                <input type="tel" id="settings-phone" name="phone" placeholder="Enter your phone number">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="settings-bio">Bio</label>
+                                <textarea id="settings-bio" name="bio" rows="4" placeholder="Tell us about yourself..."></textarea>
+                            </div>
+                            
+                            <button type="submit" class="btn-primary">Save Changes</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <p>&copy; 2025 Land Mart. All rights reserved.</p>
+    </footer>
+
+    <script src="js/main.js"></script>
+</body>
+</html>

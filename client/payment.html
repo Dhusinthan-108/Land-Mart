@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Payment - Land Mart</title>
+    <link rel="stylesheet" href="styles/main.css">
+</head>
+<body>
+    <header>
+        <nav>
+            <div class="logo">Land Mart</div>
+            <ul>
+                <li><a href="index.html">Home</a></li>
+                <li><a href="properties.html">Properties</a></li>
+                <li><a href="add-property.html">Sell Property</a></li>
+                <li><a href="unified-dashboard.html">Dashboard</a></li>
+                <li><a href="login.html">Login</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <main>
+        <section class="payment-container">
+            <h1>Complete Your Purchase</h1>
+            
+            <div class="payment-layout">
+                <div class="order-summary">
+                    <h2>Order Summary</h2>
+                    <div class="property-info">
+                        <img src="images/property1.jpg" alt="Property">
+                        <div>
+                            <h3>Oceanfront Land</h3>
+                            <p>Malibu, California</p>
+                        </div>
+                    </div>
+                    
+                    <div class="pricing-details">
+                        <div class="price-line">
+                            <span>Property Price:</span>
+                            <span>$250,000</span>
+                        </div>
+                        <div class="price-line">
+                            <span>Service Fee:</span>
+                            <span>$2,500</span>
+                        </div>
+                        <div class="price-line">
+                            <span>Tax:</span>
+                            <span>$12,500</span>
+                        </div>
+                        <div class="total-line">
+                            <strong>Total:</strong>
+                            <strong>$265,000</strong>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="payment-form">
+                    <h2>Payment Information</h2>
+                    <form id="payment-form">
+                        <div class="form-group">
+                            <label for="card-number">Card Number *</label>
+                            <input type="text" id="card-number" name="card-number" placeholder="1234 5678 9012 3456" required>
+                        </div>
+                        
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="expiry-date">Expiry Date *</label>
+                                <input type="text" id="expiry-date" name="expiry-date" placeholder="MM/YY" required>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="cvv">CVV *</label>
+                                <input type="text" id="cvv" name="cvv" placeholder="123" required>
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="card-holder">Card Holder Name *</label>
+                            <input type="text" id="card-holder" name="card-holder" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="billing-address">Billing Address *</label>
+                            <textarea id="billing-address" name="billing-address" required></textarea>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>
+                                <input type="checkbox" name="terms" required> I agree to the Terms and Conditions *
+                            </label>
+                        </div>
+                        
+                        <button type="submit" class="btn-primary">Pay $265,000</button>
+                    </form>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <p>&copy; 2025 Land Mart. All rights reserved.</p>
+    </footer>
+
+    <script src="js/main.js"></script>
+</body>
+</html>

@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Add Property - Land Mart</title>
+    <link rel="stylesheet" href="styles/main.css">
+</head>
+<body>
+    <header>
+        <nav>
+            <div class="logo">Land Mart</div>
+            <ul>
+                <li><a href="index.html">Home</a></li>
+                <li><a href="properties.html">Properties</a></li>
+                <li><a href="add-property.html">Sell Property</a></li>
+                <li><a href="unified-dashboard.html">Dashboard</a></li>
+                <li><a href="login.html">Login</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <main>
+        <section class="add-property-form">
+            <h1>List Your Property</h1>
+            <form id="property-form">
+                <div class="form-group">
+                    <label for="property-title">Property Title *</label>
+                    <input type="text" id="property-title" name="property-title" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="property-description">Description *</label>
+                    <textarea id="property-description" name="property-description" rows="5" required></textarea>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="property-price">Price ($) *</label>
+                        <input type="number" id="property-price" name="property-price" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="property-size">Size (acres) *</label>
+                        <input type="number" id="property-size" name="property-size" required>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="property-location">Location *</label>
+                    <input type="text" id="property-location" name="property-location" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="property-terrain">Terrain Type</label>
+                    <select id="property-terrain" name="property-terrain">
+                        <option value="flat">Flat</option>
+                        <option value="hilly">Hilly</option>
+                        <option value="mountainous">Mountainous</option>
+                        <option value="waterfront">Waterfront</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="property-images">Upload Images</label>
+                    <input type="file" id="property-images" name="property-images" multiple>
+                </div>
+                
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" name="terms" required> I agree to the Terms and Conditions *
+                    </label>
+                </div>
+                
+                <button type="submit" class="btn-primary">List Property</button>
+            </form>
+        </section>
+    </main>
+
+    <footer>
+        <p>&copy; 2025 Land Mart. All rights reserved.</p>
+    </footer>
+
+    <script src="js/main.js"></script>
+</body>
+</html>

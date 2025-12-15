@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Search Results - Land Mart</title>
+    <link rel="stylesheet" href="styles/main.css">
+</head>
+<body>
+    <header>
+        <nav>
+            <div class="logo">Land Mart</div>
+            <ul>
+                <li><a href="index.html">Home</a></li>
+                <li><a href="properties.html">Properties</a></li>
+                <li><a href="add-property.html">Sell Property</a></li>
+                <li><a href="unified-dashboard.html">Dashboard</a></li>
+                <li><a href="login.html">Login</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <main>
+        <section class="search-results">
+            <h1>Search Results for "oceanfront"</h1>
+            
+            <div class="search-filters">
+                <div class="filter-group">
+                    <label for="price-range">Price Range:</label>
+                    <select id="price-range">
+                        <option>All Prices</option>
+                        <option>Under $100,000</option>
+                        <option>$100,000 - $300,000</option>
+                        <option>Over $300,000</option>
+                    </select>
+                </div>
+                
+                <div class="filter-group">
+                    <label for="size-range">Size:</label>
+                    <select id="size-range">
+                        <option>All Sizes</option>
+                        <option>Under 5 acres</option>
+                        <option>5-10 acres</option>
+                        <option>Over 10 acres</option>
+                    </select>
+                </div>
+                
+                <div class="filter-group">
+                    <label for="sort-by">Sort By:</label>
+                    <select id="sort-by">
+                        <option>Price: Low to High</option>
+                        <option>Price: High to Low</option>
+                        <option>Size: Small to Large</option>
+                        <option>Size: Large to Small</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="results-count">
+                <p>Showing 2 results</p>
+            </div>
+            
+            <div class="properties-list">
+                <div class="property-card">
+                    <img src="images/property1.jpg" alt="Property 1">
+                    <h3>Oceanfront Land</h3>
+                    <p>Beautiful oceanfront property with stunning views. Perfect for development.</p>
+                    <div class="property-details">
+                        <span>5 acres</span>
+                        <span>$250,000</span>
+                    </div>
+                    <button onclick="location.href='property-detail.html'">View Details</button>
+                </div>
+
+                <div class="property-card">
+                    <img src="images/property6.jpg" alt="Property 6">
+                    <h3>Oceanview Hills</h3>
+                    <p>Hillside property with partial ocean views and easy coastal access.</p>
+                    <div class="property-details">
+                        <span>12 acres</span>
+                        <span>$420,000</span>
+                    </div>
+                    <button onclick="location.href='property-detail.html'">View Details</button>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <p>&copy; 2025 Land Mart. All rights reserved.</p>
+    </footer>
+
+    <script src="js/main.js"></script>
+</body>
+</html>
