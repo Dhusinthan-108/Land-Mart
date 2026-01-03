@@ -1,6 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const Property = require('../models/Property');
+const User = require('../models/User');
+const { authenticateToken } = require('../middleware/auth');
 
 // GET /api/properties - Get all properties
 router.get('/', async (req, res) => {
@@ -13,7 +15,7 @@ router.get('/', async (req, res) => {
 });
 
 // GET /api/properties/user/:userId - Get properties by user ID
-router.get('/user/:userId', async (req, res) => {
+router.get('/user/:userId', authenticateToken, async (req, res) => {
     try {
         const properties = await Property.find({ ownerId: req.params.userId }).populate('ownerId', 'name email');
         res.json(properties);
@@ -36,9 +38,9 @@ router.get('/:id', async (req, res) => {
 });
 
 // POST /api/properties - Create a new property
-router.post('/', async (req, res) => {
+router.post('/', authenticateToken, async (req, res) => {
     try {
-        const { title, description, price, size, location, terrain, ownerId } = req.body;
+        const { title, description, price, size, location, terrain, ownerId, images } = req.body;
         
         // Validation
         if (!title || !description || !price || !size || !location || !terrain || !ownerId) {
@@ -52,7 +54,8 @@ router.post('/', async (req, res) => {
             size,
             location,
             terrain,
-            ownerId
+            ownerId,
+            images: images || []
         });
         
         const savedProperty = await newProperty.save();
@@ -65,11 +68,16 @@ router.post('/', async (req, res) => {
 });
 
 // PUT /api/properties/:id - Update property
-router.put('/:id', async (req, res) => {
+router.put('/:id', authenticateToken, async (req, res) => {
     try {
-        // Check if user is authenticated (in a real app, you would verify JWT token)
-        // For now, we'll expect ownerId in the request body for demo purposes
-        const { title, description, price, size, location, terrain, ownerId } = req.body;
+        // Get the authenticated user ID from the token
+        // In a real app, you would decode the JWT to get the user ID
+        // For now, we'll extract it from the simulated token
+        const authHeader = req.headers.authorization;
+        const token = authHeader.split(' ')[1];
+        const userId = token.split('-')[2]; // Extract user ID from simulated token
+        
+        const { title, description, price, size, location, terrain, images } = req.body;
         
         // Find the property to check ownership
         const property = await Property.findById(req.params.id);
@@ -78,7 +86,7 @@ router.put('/:id', async (req, res) => {
         }
         
         // Check if the requesting user is the owner of the property
-        if (property.ownerId.toString() !== ownerId) {
+        if (property.ownerId.toString() !== userId) {
             return res.status(403).json({ message: 'Access denied. You can only update your own properties.' });
         }
         
@@ -89,6 +97,7 @@ router.put('/:id', async (req, res) => {
         if (size) updates.size = size;
         if (location) updates.location = location;
         if (terrain) updates.terrain = terrain;
+        if (images !== undefined) updates.images = images;
         
         const updatedProperty = await Property.findByIdAndUpdate(
             req.params.id,
@@ -103,17 +112,124 @@ router.put('/:id', async (req, res) => {
 });
 
 // DELETE /api/properties/:id - Delete property
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', authenticateToken, async (req, res) => {
     try {
-        const property = await Property.findByIdAndDelete(req.params.id);
+        // Get the authenticated user ID from the token
+        // In a real app, you would decode the JWT to get the user ID
+        // For now, we'll extract it from the simulated token
+        const authHeader = req.headers.authorization;
+        const token = authHeader.split(' ')[1];
+        const userId = token.split('-')[2]; // Extract user ID from simulated token
         
+        // Find the property to check ownership
+        const property = await Property.findById(req.params.id);
         if (!property) {
             return res.status(404).json({ message: 'Property not found' });
         }
         
+        // Check if the requesting user is the owner of the property
+        if (property.ownerId.toString() !== userId) {
+            return res.status(403).json({ message: 'Access denied. You can only delete your own properties.' });
+        }
+        
+        // Delete the property
+        await Property.findByIdAndDelete(req.params.id);
+        
         res.json({ message: 'Property deleted successfully' });
     } catch (error) {
         res.status(500).json({ message: 'Error deleting property', error: error.message });
+    }
+});
+
+// POST /api/properties/:id/save - Save a property for a user
+router.post('/:id/save', authenticateToken, async (req, res) => {
+    try {
+        // Get the authenticated user ID from the token
+        // In a real app, you would decode the JWT to get the user ID
+        // For now, we'll extract it from the simulated token
+        const authHeader = req.headers.authorization;
+        const token = authHeader.split(' ')[1];
+        const userId = token.split('-')[2]; // Extract user ID from simulated token
+        
+        // Find the property
+        const property = await Property.findById(req.params.id);
+        if (!property) {
+            return res.status(404).json({ message: 'Property not found' });
+        }
+        
+        // Find the user and add property to savedProperties if not already saved
+        const user = await User.findById(userId);
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+        
+        // Check if property is already saved
+        if (user.savedProperties.includes(property._id)) {
+            return res.status(400).json({ message: 'Property already saved' });
+        }
+        
+        // Add property to user's savedProperties
+        user.savedProperties.push(property._id);
+        await user.save();
+        
+        res.json({ message: 'Property saved successfully', savedProperties: user.savedProperties });
+    } catch (error) {
+        res.status(500).json({ message: 'Error saving property', error: error.message });
+    }
+});
+
+// POST /api/properties/:id/unsave - Unsave a property for a user
+router.post('/:id/unsave', authenticateToken, async (req, res) => {
+    try {
+        // Get the authenticated user ID from the token
+        // In a real app, you would decode the JWT to get the user ID
+        // For now, we'll extract it from the simulated token
+        const authHeader = req.headers.authorization;
+        const token = authHeader.split(' ')[1];
+        const userId = token.split('-')[2]; // Extract user ID from simulated token
+        
+        // Find the property
+        const property = await Property.findById(req.params.id);
+        if (!property) {
+            return res.status(404).json({ message: 'Property not found' });
+        }
+        
+        // Find the user and remove property from savedProperties
+        const user = await User.findByIdAndUpdate(
+            userId,
+            { $pull: { savedProperties: property._id } },
+            { new: true }
+        );
+        
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+        
+        res.json({ message: 'Property unsaved successfully', savedProperties: user.savedProperties });
+    } catch (error) {
+        res.status(500).json({ message: 'Error unsaving property', error: error.message });
+    }
+});
+
+// GET /api/properties/saved/:userId - Get saved properties for a user
+router.get('/saved/:userId', authenticateToken, async (req, res) => {
+    try {
+        // Find the user and populate saved properties
+        const user = await User.findById(req.params.userId).populate({
+            path: 'savedProperties',
+            populate: {
+                path: 'ownerId',
+                select: 'name email'
+            }
+        });
+        
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+        
+        res.json(user.savedProperties);
+    } catch (error) {
+        res.status(500).json({ message: 'Error fetching saved properties', error: error.message });
     }
 });
 

@@ -1,95 +1,182 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Search Results - Land Mart</title>
-    <link rel="stylesheet" href="styles/main.css">
+    <link rel="stylesheet" href="css/style.css">
+    <!-- Inter Font -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap"
+        rel="stylesheet">
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- API Configuration -->
+    <script src="js/api-config.js"></script>
 </head>
+
 <body>
     <header>
-        <nav>
-            <div class="logo">Land Mart</div>
-            <ul>
-                <li><a href="index.html">Home</a></li>
-                <li><a href="properties.html">Properties</a></li>
-                <li><a href="add-property.html">Sell Property</a></li>
-                <li><a href="unified-dashboard.html">Dashboard</a></li>
-                <li><a href="login.html">Login</a></li>
-            </ul>
-        </nav>
+        <div class="container">
+            <nav class="navbar">
+                <a href="index.html" class="navbar-brand">Land Mart</a>
+                <ul class="navbar-nav">
+                    <li><a href="index.html" class="nav-link">Home</a></li>
+                    <li><a href="properties.html" class="nav-link">Properties</a></li>
+                    <li><a href="unified-dashboard.html" class="nav-link">Dashboard</a></li>
+                    <li><a href="messages.html" class="nav-link">Messages</a></li>
+                    <li><a href="login.html" class="nav-link">Login</a></li>
+                </ul>
+                <button class="mobile-menu-button">
+                    <i class="fas fa-bars"></i>
+                </button>
+            </nav>
+        </div>
     </header>
 
     <main>
-        <section class="search-results">
-            <h1>Search Results for "oceanfront"</h1>
-            
-            <div class="search-filters">
-                <div class="filter-group">
-                    <label for="price-range">Price Range:</label>
-                    <select id="price-range">
-                        <option>All Prices</option>
-                        <option>Under $100,000</option>
-                        <option>$100,000 - $300,000</option>
-                        <option>Over $300,000</option>
-                    </select>
-                </div>
-                
-                <div class="filter-group">
-                    <label for="size-range">Size:</label>
-                    <select id="size-range">
-                        <option>All Sizes</option>
-                        <option>Under 5 acres</option>
-                        <option>5-10 acres</option>
-                        <option>Over 10 acres</option>
-                    </select>
-                </div>
-                
-                <div class="filter-group">
-                    <label for="sort-by">Sort By:</label>
-                    <select id="sort-by">
-                        <option>Price: Low to High</option>
-                        <option>Price: High to Low</option>
-                        <option>Size: Small to Large</option>
-                        <option>Size: Large to Small</option>
-                    </select>
-                </div>
-            </div>
-            
-            <div class="results-count">
-                <p>Showing 2 results</p>
-            </div>
-            
-            <div class="properties-list">
-                <div class="property-card">
-                    <img src="images/property1.jpg" alt="Property 1">
-                    <h3>Oceanfront Land</h3>
-                    <p>Beautiful oceanfront property with stunning views. Perfect for development.</p>
-                    <div class="property-details">
-                        <span>5 acres</span>
-                        <span>$250,000</span>
+        <section class="search-results-section py-5">
+            <div class="container">
+                <h1 class="mb-4">Search Results</h1>
+
+                <div class="search-filters glass-panel p-4 mb-5">
+                    <div class="search-grid">
+                        <div class="form-group mb-0">
+                            <label class="form-label text-white">Price Range</label>
+                            <select id="price-range" class="form-control">
+                                <option>All Prices</option>
+                                <option>Under ₹50L</option>
+                                <option>₹50L - ₹1 Cr</option>
+                                <option>Over ₹1 Cr</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group mb-0">
+                            <label class="form-label text-white">Size</label>
+                            <select id="size-range" class="form-control">
+                                <option>All Sizes</option>
+                                <option>Under 5 acres</option>
+                                <option>5-10 acres</option>
+                                <option>Over 10 acres</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group mb-0">
+                            <label class="form-label text-white">Sort By</label>
+                            <select id="sort-by" class="form-control">
+                                <option>Price: Low to High</option>
+                                <option>Price: High to Low</option>
+                                <option>Size: Small to Large</option>
+                            </select>
+                        </div>
                     </div>
-                    <button onclick="location.href='property-detail.html'">View Details</button>
                 </div>
 
-                <div class="property-card">
-                    <img src="images/property6.jpg" alt="Property 6">
-                    <h3>Oceanview Hills</h3>
-                    <p>Hillside property with partial ocean views and easy coastal access.</p>
-                    <div class="property-details">
-                        <span>12 acres</span>
-                        <span>$420,000</span>
+                <div class="results-count mb-4">
+                    <p>Showing results matching your criteria</p>
+                </div>
+
+                <div class="properties-grid">
+                    <!-- Static results for now -->
+                    <div class="property-card">
+                        <div class="property-image">
+                            <img src="https://images.unsplash.com/photo-1500382017468-9049fed747ef?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
+                                alt="Oceanfront Land">
+                            <div class="property-tag">For Sale</div>
+                        </div>
+                        <div class="property-details">
+                            <h3 class="property-title">Oceanfront Land in Goa</h3>
+                            <div class="property-location"><i class="fas fa-map-marker-alt"></i> Goa, India</div>
+                            <div class="property-price">₹2,50,00,000</div>
+                            <div class="property-features">
+                                <span><i class="fas fa-ruler-combined"></i> 5 acres</span>
+                                <span><i class="fas fa-mountain"></i> Coastal</span>
+                            </div>
+                            <a href="property-detail.html" class="btn btn-outline w-100">View Details</a>
+                        </div>
                     </div>
-                    <button onclick="location.href='property-detail.html'">View Details</button>
+
+                    <div class="property-card">
+                        <div class="property-image">
+                            <img src="https://images.unsplash.com/photo-1516156008625-3a9d6067fab5?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
+                                alt="Oceanview Hills">
+                            <div class="property-tag">For Sale</div>
+                        </div>
+                        <div class="property-details">
+                            <h3 class="property-title">Hillside View Plot</h3>
+                            <div class="property-location"><i class="fas fa-map-marker-alt"></i> Kerala, India</div>
+                            <div class="property-price">₹1,20,00,000</div>
+                            <div class="property-features">
+                                <span><i class="fas fa-ruler-combined"></i> 12 acres</span>
+                                <span><i class="fas fa-mountain"></i> Hilly</span>
+                            </div>
+                            <a href="property-detail.html" class="btn btn-outline w-100">View Details</a>
+                        </div>
+                    </div>
                 </div>
             </div>
         </section>
     </main>
 
+    <!-- Footer -->
     <footer>
-        <p>&copy; 2025 Land Mart. All rights reserved.</p>
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-column">
+                    <h3 class="footer-heading">Land Mart</h3>
+                    <p>Your trusted platform for buying and selling land properties across India.</p>
+                    <div class="social-links">
+                        <a href="#"><i class="fab fa-facebook-f"></i></a>
+                        <a href="#"><i class="fab fa-twitter"></i></a>
+                        <a href="#"><i class="fab fa-instagram"></i></a>
+                        <a href="#"><i class="fab fa-linkedin-in"></i></a>
+                    </div>
+                </div>
+
+                <div class="footer-column">
+                    <h3 class="footer-heading">Quick Links</h3>
+                    <ul class="footer-links">
+                        <li><a href="index.html">Home</a></li>
+                        <li><a href="properties.html">Properties</a></li>
+                        <li><a href="add-property.html">Sell Property</a></li>
+                        <li><a href="unified-dashboard.html">Dashboard</a></li>
+                        <li><a href="login.html">Login</a></li>
+                    </ul>
+                </div>
+
+                <div class="footer-column">
+                    <h3 class="footer-heading">Categories</h3>
+                    <ul class="footer-links">
+                        <li><a href="#">Agricultural Land</a></li>
+                        <li><a href="#">Commercial Plots</a></li>
+                        <li><a href="#">Residential Land</a></li>
+                        <li><a href="#">Industrial Land</a></li>
+                        <li><a href="#">Farm Houses</a></li>
+                    </ul>
+                </div>
+
+                <div class="footer-column">
+                    <h3 class="footer-heading">Contact Us</h3>
+                    <ul class="footer-links">
+                        <li><i class="fas fa-map-marker-alt"></i> Chennai, Tamil Nadu</li>
+                        <li><i class="fas fa-phone"></i> +91 98765 43210</li>
+                        <li><i class="fas fa-envelope"></i> info@landmart.com</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="copyright">
+                <p>&copy; 2025 Land Mart. All rights reserved.</p>
+                <div class="legal-links">
+                    <a href="#">Privacy Policy</a> |
+                    <a href="#">Terms of Service</a> |
+                    <a href="#">Cookie Policy</a>
+                </div>
+            </div>
+        </div>
     </footer>
 
     <script src="js/main.js"></script>
 </body>
+
 </html>

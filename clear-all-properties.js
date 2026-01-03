@@ -5,7 +5,7 @@ async function clearAllProperties() {
         console.log('Fetching current properties...');
         
         // Fetch all properties
-        const propertiesResponse = await axios.get('http://localhost:5500/api/properties');
+        const propertiesResponse = await axios.get('http://localhost:5501/api/properties');
         const properties = propertiesResponse.data;
         console.log(`Found ${properties.length} properties to delete`);
         
@@ -14,7 +14,7 @@ async function clearAllProperties() {
         let deletedCount = 0;
         for (const property of properties) {
             try {
-                await axios.delete(`http://localhost:5500/api/properties/${property._id}`);
+                await axios.delete(`http://localhost:5501/api/properties/${property._id}`);
                 console.log(`Deleted property: ${property.title}`);
                 deletedCount++;
             } catch (error) {
@@ -25,7 +25,7 @@ async function clearAllProperties() {
         console.log(`Successfully deleted ${deletedCount} properties`);
         
         // Verify properties are cleared
-        const finalProperties = await axios.get('http://localhost:5500/api/properties');
+        const finalProperties = await axios.get('http://localhost:5501/api/properties');
         console.log(`Remaining properties: ${finalProperties.data.length}`);
         
         if (finalProperties.data.length === 0) {

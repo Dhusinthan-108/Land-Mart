@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CORS Test</title>
+</head>
+<body>
+    <h1>CORS Test</h1>
+    <button id="testBtn">Test CORS Request</button>
+    <div id="result"></div>
+
+    <script>
+        document.getElementById('testBtn').addEventListener('click', async function() {
+            try {
+                const response = await fetch('http://localhost:5501/api/properties/user/693fac63f5a66f6eec0683e6', {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    document.getElementById('result').innerHTML = '<p style="color: green;">Success! Received ' + data.length + ' properties</p>';
+                } else {
+                    document.getElementById('result').innerHTML = '<p style="color: red;">Error: ' + response.status + ' ' + response.statusText + '</p>';
+                }
+            } catch (error) {
+                document.getElementById('result').innerHTML = '<p style="color: red;">Error: ' + error.message + '</p>';
+            }
+        });
+    </script>
+</body>
+</html>

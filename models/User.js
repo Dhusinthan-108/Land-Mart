@@ -26,6 +26,42 @@ const userSchema = new mongoose.Schema({
     bio: {
         type: String
     },
+    // Add savedProperties field as an array of ObjectIds referencing Property documents
+    savedProperties: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Property'
+    }],
+    // Notification preferences
+    emailNotifications: {
+        type: Boolean,
+        default: true
+    },
+    messageNotifications: {
+        type: Boolean,
+        default: true
+    },
+    propertyUpdates: {
+        type: Boolean,
+        default: true
+    },
+    // Privacy settings
+    profilePublic: {
+        type: Boolean,
+        default: true
+    },
+    showContactInfo: {
+        type: Boolean,
+        default: true
+    },
+    activityVisibility: {
+        type: Boolean,
+        default: true
+    },
+    // Security settings
+    twoFactorAuth: {
+        type: Boolean,
+        default: false
+    },
     isActive: {
         type: Boolean,
         default: true

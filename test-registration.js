@@ -15,7 +15,7 @@ async function testRegistration() {
         console.log('Sending data:', userData);
 
         // Send registration request
-        const response = await axios.post('http://localhost:5500/api/users', userData);
+        const response = await axios.post('http://localhost:5501/api/users', userData);
         
         console.log('Registration successful!');
         console.log('Response:', response.data);
@@ -23,7 +23,7 @@ async function testRegistration() {
         // Test duplicate registration (should fail)
         console.log('\nTesting duplicate registration (should fail)...');
         try {
-            const duplicateResponse = await axios.post('http://localhost:5500/api/users', userData);
+            const duplicateResponse = await axios.post('http://localhost:5501/api/users', userData);
             console.log('Unexpected success on duplicate registration:', duplicateResponse.data);
         } catch (error) {
             if (error.response && error.response.status === 409) {
@@ -35,7 +35,7 @@ async function testRegistration() {
         
         // Retrieve all users to confirm
         console.log('\nRetrieving all users...');
-        const usersResponse = await axios.get('http://localhost:5500/api/users');
+        const usersResponse = await axios.get('http://localhost:5501/api/users');
         console.log(`Total users in database: ${usersResponse.data.length}`);
         console.log('All users:', JSON.stringify(usersResponse.data, null, 2));
         

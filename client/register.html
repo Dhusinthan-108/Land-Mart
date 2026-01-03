@@ -1,86 +1,387 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Register - Land Mart</title>
-    <link rel="stylesheet" href="styles/main.css">
-</head>
-<body>
-    <header>
-        <nav>
-            <div class="logo">Land Mart</div>
-            <ul>
-                <li><a href="index.html">Home</a></li>
-                <li><a href="properties.html">Properties</a></li>
-                <li><a href="add-property.html">Sell Property</a></li>
-                <li><a href="unified-dashboard.html">Dashboard</a></li>
-                <li><a href="login.html">Login</a></li>
-            </ul>
-        </nav>
-    </header>
+    <link rel="stylesheet" href="css/style.css">
+    <!-- Inter Font -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- API Configuration -->
+    <script src="js/api-config.js"></script>
+    <script>
+        // Copy styles from Login page if needed or rely on the inline styles below which match login.html
+    </script>
+    <style>
+        :root {
+            --primary: #6366f1;
+            --primary-dark: #4f46e5;
+            --secondary: #64748b;
+            --white: #ffffff;
+            --gray-100: #f1f5f9;
+            --gray-200: #e2e8f0;
+            --text-main: #1e293b;
+            --text-light: #64748b;
+            --radius-xl: 1rem;
+            --radius-2xl: 1.5rem;
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
 
-    <main>
-        <section class="register-container">
-            <div class="register-form">
-                <h1>Create an Account</h1>
-                <p>Join Land Mart to buy or sell land properties</p>
-                
-                <form id="register-form">
-                    <div class="form-group">
-                        <label for="full-name">Full Name *</label>
-                        <input type="text" id="full-name" name="full-name" required>
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #f8fafc;
+            background-image:
+                radial-gradient(at 0% 0%, rgba(99, 102, 241, 0.15) 0px, transparent 50%),
+                radial-gradient(at 100% 0%, rgba(139, 92, 246, 0.15) 0px, transparent 50%),
+                radial-gradient(at 100% 100%, rgba(236, 72, 153, 0.15) 0px, transparent 50%);
+            background-attachment: fixed;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+            margin: 0;
+        }
+
+        .login-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            max-width: 1000px;
+            width: 100%;
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-radius: var(--radius-2xl);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            min-height: 600px;
+        }
+
+        .login-left {
+            background: linear-gradient(135deg, var(--primary) 0%, #8b5cf6 100%);
+            padding: 4rem;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            color: var(--white);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .login-left::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('https://images.unsplash.com/photo-1513880989635-6eb491ce7f5b?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80') center/cover;
+            opacity: 0.1;
+            mix-blend-mode: overlay;
+        }
+
+        .brand-content {
+            position: relative;
+            z-index: 10;
+        }
+
+        .brand-title {
+            font-size: 3rem;
+            font-weight: 800;
+            margin-bottom: 1rem;
+            letter-spacing: -0.02em;
+        }
+
+        .brand-subtitle {
+            font-size: 1.25rem;
+            opacity: 0.9;
+            margin-bottom: 3rem;
+            font-weight: 300;
+        }
+
+        .feature-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            font-size: 1.1rem;
+        }
+
+        .feature-icon {
+            background: rgba(255, 255, 255, 0.2);
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 1rem;
+        }
+
+        .login-right {
+            padding: 3rem;
+            /* Slightly less padding for register form to fit */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .login-form-container {
+            width: 100%;
+            max-width: 400px;
+            max-height: 80vh;
+            overflow-y: auto;
+            padding-right: 5px;
+        }
+
+        /* Custom scrollbar for form container */
+        .login-form-container::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .login-form-container::-webkit-scrollbar-thumb {
+            background-color: var(--gray-300);
+            border-radius: 3px;
+        }
+
+        .form-header h2 {
+            font-size: 2rem;
+            font-weight: 800;
+            color: var(--text-main);
+            margin-bottom: 0.5rem;
+        }
+
+        .text-muted {
+            color: var(--text-light);
+            margin-bottom: 2rem;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: var(--text-main);
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        .input-group {
+            position: relative;
+            margin-bottom: 1.25rem;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 0.875rem 1rem 0.875rem 2.5rem;
+            border: 2px solid var(--gray-200);
+            border-radius: var(--radius-xl);
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            background: rgba(255, 255, 255, 0.5);
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: var(--primary);
+            background: var(--white);
+            box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
+        }
+
+        .input-icon {
+            position: absolute;
+            left: 1rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-light);
+            z-index: 1;
+        }
+
+        .btn-primary {
+            width: 100%;
+            padding: 1rem;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: var(--white);
+            border: none;
+            border-radius: var(--radius-xl);
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 6px -1px rgba(79, 70, 229, 0.3);
+            margin-top: 1rem;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(79, 70, 229, 0.4);
+        }
+
+        .signup-link {
+            text-align: center;
+            margin-top: 1.5rem;
+            color: var(--text-light);
+            font-size: 0.9rem;
+        }
+
+        .signup-link a {
+            color: var(--primary);
+            text-decoration: none;
+            font-weight: 700;
+        }
+
+        .back-to-home {
+            position: absolute;
+            top: 2rem;
+            left: 2rem;
+            color: var(--text-main);
+            text-decoration: none;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            z-index: 100;
+            background: rgba(255, 255, 255, 0.5);
+            padding: 0.5rem 1rem;
+            border-radius: var(--radius-xl);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            transition: all 0.3s ease;
+        }
+
+        .back-to-home:hover {
+            background: var(--white);
+            transform: translateX(-5px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        @media (max-width: 768px) {
+            .login-container {
+                grid-template-columns: 1fr;
+            }
+
+            .login-left {
+                display: none;
+            }
+
+            .login-right {
+                padding: 2rem;
+            }
+        }
+    </style>
+</head>
+
+<body class="register-page">
+    <a href="index.html" class="back-to-home">
+        <i class="fas fa-arrow-left"></i> Back to Home
+    </a>
+    <div class="login-container">
+        <!-- Left Side - Brand/Image -->
+        <div class="login-left">
+            <div class="brand-content">
+                <h1 class="brand-title">Join Us</h1>
+                <p class="brand-subtitle">Start your journey with Land Mart today</p>
+
+                <div class="brand-features">
+                    <div class="feature-item">
+                        <div class="feature-icon"><i class="fas fa-home"></i></div>
+                        <span>List your properties for free</span>
                     </div>
-                    
-                    <div class="form-group">
-                        <label for="email">Email Address *</label>
-                        <input type="email" id="email" name="email" required>
+                    <div class="feature-item">
+                        <div class="feature-icon"><i class="fas fa-search"></i></div>
+                        <span>Access exclusive land deals</span>
                     </div>
-                    
-                    <div class="form-group">
-                        <label for="phone">Phone Number *</label>
-                        <input type="tel" id="phone" name="phone" required>
+                    <div class="feature-item">
+                        <div class="feature-icon"><i class="fas fa-handshake"></i></div>
+                        <span>Connect directly with buyers</span>
                     </div>
-                    
-                    <div class="form-group">
-                        <label for="password">Password *</label>
-                        <input type="password" id="password" name="password" required>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="confirm-password">Confirm Password *</label>
-                        <input type="password" id="confirm-password" name="confirm-password" required>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="account-type">Account Type *</label>
-                        <select id="account-type" name="account-type" required>
-                            <option value="">Select account type</option>
-                            <option value="buyer">Buyer</option>
-                            <option value="seller">Seller</option>
-                        </select>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label>
-                            <input type="checkbox" name="terms" required> I agree to the Terms and Conditions *
-                        </label>
-                    </div>
-                    
-                    <button type="submit" class="btn-primary">Create Account</button>
-                </form>
-                
-                <div class="login-option">
-                    <p>Already have an account? <a href="login.html">Sign In</a></p>
                 </div>
             </div>
-        </section>
-    </main>
+        </div>
 
-    <footer>
-        <p>&copy; 2025 Land Mart. All rights reserved.</p>
-    </footer>
+        <!-- Right Side - Register Form -->
+        <div class="login-right">
+            <div class="login-form-container">
+                <div class="form-header text-center mb-4">
+                    <h2>Create Account 🚀</h2>
+                    <p class="text-muted">Fill in your details to get started</p>
+                </div>
+
+                <form id="register-form" class="login-form">
+                    <div class="form-group">
+                        <label for="full-name" class="form-label">Full Name</label>
+                        <div class="input-group">
+                            <span class="input-icon"><i class="fas fa-user"></i></span>
+                            <input type="text" id="full-name" name="full-name" class="form-control"
+                                placeholder="John Doe" required>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="email" class="form-label">Email Address</label>
+                        <div class="input-group">
+                            <span class="input-icon"><i class="fas fa-envelope"></i></span>
+                            <input type="email" id="email" name="email" class="form-control"
+                                placeholder="john@example.com" required>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="phone" class="form-label">Phone Number</label>
+                        <div class="input-group">
+                            <span class="input-icon"><i class="fas fa-phone"></i></span>
+                            <input type="tel" id="phone" name="phone" class="form-control" placeholder="+91 98765 43210"
+                                required>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="password" class="form-label">Password</label>
+                        <div class="input-group">
+                            <span class="input-icon"><i class="fas fa-lock"></i></span>
+                            <input type="password" id="password" name="password" class="form-control"
+                                placeholder="Create a password" required>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="confirm-password" class="form-label">Confirm Password</label>
+                        <div class="input-group">
+                            <span class="input-icon"><i class="fas fa-lock"></i></span>
+                            <input type="password" id="confirm-password" name="confirm-password" class="form-control"
+                                placeholder="Confirm password" required>
+                        </div>
+                    </div>
+
+                    <div class="form-group" style="margin-bottom: 1rem;">
+                        <div style="display: flex; align-items: start; gap: 0.5rem;">
+                            <input type="checkbox" id="terms" name="terms" required style="margin-top: 4px;">
+                            <label for="terms" style="font-size: 0.9rem; color: var(--text-light); line-height: 1.4;">
+                                I agree to the <a href="#" style="color: var(--primary); text-decoration: none;">Terms
+                                    of Service</a> and <a href="#"
+                                    style="color: var(--primary); text-decoration: none;">Privacy Policy</a>
+                            </label>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn-primary">
+                        Create Account
+                    </button>
+
+                    <div class="signup-link">
+                        <p>Already have an account? <a href="login.html">Sign In</a></p>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
 
     <script src="js/main.js"></script>
+    <script>
+        // Form handling logic is in main.js
+    </script>
 </body>
+
 </html>

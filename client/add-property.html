@@ -1,86 +1,541 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Add Property - Land Mart</title>
-    <link rel="stylesheet" href="styles/main.css">
+    <title>Sell Your Property - Land Mart</title>
+    <meta name="description" content="List your land property on Land Mart marketplace - Easy, fast, and secure">
+    <link rel="stylesheet" href="css/style.css">
+    <!-- Inter Font -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- API Configuration -->
+    <script src="js/api-config.js"></script>
+    <style>
+        :root {
+            /* Importing core variables from style.css conceptually */
+            --primary: #6366f1;
+            --primary-dark: #4f46e5;
+            --secondary: #64748b;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --light: #f8fafc;
+            --dark: #1e293b;
+            --gray-100: #f1f5f9;
+            --gray-200: #e2e8f0;
+            --gray-300: #cbd5e1;
+            --gray-400: #94a3b8;
+            --gray-500: #64748b;
+            --white: #ffffff;
+
+            --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+
+            --radius-md: 0.375rem;
+            --radius-lg: 0.5rem;
+            --radius-xl: 1rem;
+            --radius-2xl: 1.5rem;
+
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #f8fafc;
+            /* Fallback */
+            background-image:
+                radial-gradient(at 0% 0%, rgba(99, 102, 241, 0.15) 0px, transparent 50%),
+                radial-gradient(at 100% 0%, rgba(139, 92, 246, 0.15) 0px, transparent 50%),
+                radial-gradient(at 100% 100%, rgba(236, 72, 153, 0.15) 0px, transparent 50%),
+                radial-gradient(at 0% 100%, rgba(16, 185, 129, 0.15) 0px, transparent 50%);
+            background-attachment: fixed;
+            min-height: 100vh;
+            padding-bottom: 4rem;
+            color: var(--dark);
+        }
+
+        /* Navbar styles override to match glassmorphism */
+        .navbar {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+            box-shadow: var(--shadow-sm);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+
+        .sell-property-main {
+            padding-top: 3rem;
+            animation: fadeIn 0.6s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .form-header h1 {
+            font-weight: 800;
+            background: linear-gradient(135deg, var(--primary) 0%, #8b5cf6 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 1rem;
+            letter-spacing: -0.02em;
+        }
+
+        .form-header p {
+            color: var(--gray-500);
+            font-size: 1.125rem;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .wizard-container.card {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-radius: var(--radius-2xl);
+            box-shadow: var(--shadow-xl);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            max-width: 850px;
+            margin-top: 2rem;
+            overflow: visible;
+            /* To allow shadows of children */
+        }
+
+        .wizard-form {
+            padding: 3rem;
+        }
+
+        .step-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 2rem;
+            color: var(--dark);
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .step-title::before {
+            content: '';
+            display: block;
+            width: 4px;
+            height: 24px;
+            background: var(--primary);
+            border-radius: 2px;
+        }
+
+        .form-group {
+            margin-bottom: 1.75rem;
+        }
+
+        .form-label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            color: var(--secondary);
+            font-size: 0.95rem;
+        }
+
+        .form-control {
+            width: 100%;
+            border: 2px solid var(--gray-200);
+            border-radius: var(--radius-lg);
+            padding: 0.875rem 1rem;
+            font-size: 1rem;
+            transition: var(--transition);
+            background: rgba(255, 255, 255, 0.8);
+            color: var(--dark);
+        }
+
+        .form-control:focus {
+            border-color: var(--primary);
+            background: var(--white);
+            box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
+            outline: none;
+        }
+
+        .form-control::placeholder {
+            color: var(--gray-400);
+        }
+
+        .image-upload-container {
+            border: 2px dashed var(--gray-300);
+            border-radius: var(--radius-xl);
+            padding: 3rem 2rem;
+            text-align: center;
+            background-color: rgba(255, 255, 255, 0.5);
+            transition: var(--transition);
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .image-upload-container:hover,
+        .image-upload-container.dragover {
+            border-color: var(--primary);
+            background-color: rgba(99, 102, 241, 0.05);
+            transform: translateY(-2px);
+        }
+
+        .upload-icon-wrapper {
+            width: 80px;
+            height: 80px;
+            background: rgba(99, 102, 241, 0.1);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 1.5rem;
+            transition: var(--transition);
+        }
+
+        .image-upload-container:hover .upload-icon-wrapper {
+            transform: scale(1.1);
+            background: rgba(99, 102, 241, 0.2);
+        }
+
+        .upload-area i {
+            font-size: 2.5rem;
+            color: var(--primary);
+        }
+
+        .upload-area p {
+            margin-bottom: 1.5rem;
+            color: var(--secondary);
+            font-size: 1.1rem;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0.875rem 2rem;
+            border-radius: var(--radius-xl);
+            /* Pill shape matching homepage */
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            border: none;
+            font-size: 1rem;
+            gap: 0.5rem;
+        }
+
+        .btn-outline {
+            background: transparent;
+            border: 2px solid var(--primary);
+            color: var(--primary);
+        }
+
+        .btn-outline:hover {
+            background: var(--primary);
+            color: var(--white);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, var(--success) 0%, #059669 100%);
+            color: white;
+            box-shadow: 0 4px 6px -1px rgba(16, 185, 129, 0.3);
+            width: 100%;
+            /* Full width for mobile/emphasis */
+            font-size: 1.125rem;
+            padding: 1rem;
+        }
+
+        .btn-success:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(16, 185, 129, 0.4);
+            filter: brightness(1.1);
+        }
+
+        .image-preview-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+            gap: 1.5rem;
+            margin-top: 2rem;
+            width: 100%;
+        }
+
+        .image-preview {
+            position: relative;
+            aspect-ratio: 1;
+            border-radius: var(--radius-lg);
+            overflow: hidden;
+            box-shadow: var(--shadow-md);
+            transition: var(--transition);
+            border: 2px solid var(--white);
+        }
+
+        .image-preview:hover {
+            transform: scale(1.05);
+            box-shadow: var(--shadow-lg);
+            border-color: var(--primary);
+        }
+
+        .image-preview img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .remove-image {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background: rgba(239, 68, 68, 0.9);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 32px;
+            height: 32px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            transition: var(--transition);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+            opacity: 0;
+            /* Hidden by default */
+        }
+
+        .image-preview:hover .remove-image {
+            opacity: 1;
+        }
+
+        .remove-image:hover {
+            background: var(--danger);
+            transform: rotate(90deg);
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+            margin-bottom: 0;
+            /* Handled by form-group */
+        }
+
+        .form-navigation {
+            border-top: 1px solid var(--gray-200);
+            padding-top: 2rem;
+            margin-top: 2rem;
+        }
+
+        @media (max-width: 768px) {
+            .wizard-form {
+                padding: 1.5rem;
+            }
+
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+
+            .form-header h1 {
+                font-size: 2.25rem;
+            }
+        }
+    </style>
 </head>
+
 <body>
+    <!-- Header -->
     <header>
-        <nav>
-            <div class="logo">Land Mart</div>
-            <ul>
-                <li><a href="index.html">Home</a></li>
-                <li><a href="properties.html">Properties</a></li>
-                <li><a href="add-property.html">Sell Property</a></li>
-                <li><a href="unified-dashboard.html">Dashboard</a></li>
-                <li><a href="login.html">Login</a></li>
-            </ul>
-        </nav>
+        <div class="container">
+            <nav class="navbar">
+                <a href="index.html" class="navbar-brand">Land Mart</a>
+                <ul class="navbar-nav">
+                    <li><a href="index.html" class="nav-link">Home</a></li>
+                    <li><a href="properties.html" class="nav-link">Properties</a></li>
+                    <li><a href="unified-dashboard.html" class="nav-link">Dashboard</a></li>
+                    <li><a href="messages.html" class="nav-link">Messages</a></li>
+                    <li><a href="login.html" class="nav-link">Login</a></li>
+                </ul>
+                <button class="mobile-menu-button">
+                    <i class="fas fa-bars"></i>
+                </button>
+            </nav>
+        </div>
     </header>
 
-    <main>
-        <section class="add-property-form">
-            <h1>List Your Property</h1>
-            <form id="property-form">
-                <div class="form-group">
-                    <label for="property-title">Property Title *</label>
-                    <input type="text" id="property-title" name="property-title" required>
+    <!-- Main Content -->
+    <main class="sell-property-main">
+        <div class="container">
+            <div class="form-header text-center mb-5">
+                <h1 class="display-4 mb-3">Add New Property</h1>
+                <p class="lead">List your land property in our marketplace</p>
+            </div>
+
+            <div class="wizard-container card mx-auto">
+
+                <div class="wizard-form" id="wizard-form">
+                    <!-- Simplified Form - Single Step -->
+                    <form id="property-form">
+                        <div class="form-step active" id="step-1">
+                            <h3 class="step-title">Property Information</h3>
+
+                            <div class="form-group">
+                                <label for="property-title" class="form-label">Property Title *</label>
+                                <input type="text" id="property-title" class="form-control"
+                                    placeholder="e.g. Beautiful Agricultural Land in Chennai" required>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="property-description" class="form-label">Description *</label>
+                                <textarea id="property-description" class="form-control" rows="4"
+                                    placeholder="Describe your property in detail..." required></textarea>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="property-location" class="form-label">Location *</label>
+                                <input type="text" id="property-location" class="form-control"
+                                    placeholder="Enter full address" required>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group col-md-6">
+                                    <label for="property-terrain" class="form-label">Terrain Type *</label>
+                                    <select id="property-terrain" class="form-control" required>
+                                        <option value="">Select Terrain Type</option>
+                                        <option value="flat">Flat</option>
+                                        <option value="hilly">Hilly</option>
+                                        <option value="mountainous">Mountainous</option>
+                                        <option value="waterfront">Waterfront</option>
+                                    </select>
+                                </div>
+
+                                <div class="form-group col-md-6">
+                                    <label for="property-price" class="form-label">Price (₹) *</label>
+                                    <input type="number" id="property-price" class="form-control"
+                                        placeholder="e.g. 125000" required>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label for="property-size" class="form-label">Size (sq.ft) *</label>
+                                <input type="number" id="property-size" class="form-control" placeholder="e.g. 1200"
+                                    required>
+                            </div>
+
+                            <!-- Image Upload Section -->
+                            <div class="form-group">
+                                <label for="property-images" class="form-label">Property Images</label>
+                                <div class="image-upload-container">
+                                    <div class="upload-area" id="upload-drop-zone">
+                                        <div class="upload-icon-wrapper">
+                                            <i class="fas fa-cloud-upload-alt"></i>
+                                        </div>
+                                        <p>Drag & drop images here or click to browse</p>
+                                        <input type="file" id="property-images" class="form-control" accept="image/*"
+                                            multiple style="display: none;">
+                                        <button type="button" class="btn btn-outline"
+                                            onclick="document.getElementById('property-images').click();">
+                                            <i class="fas fa-images"></i> Select Images
+                                        </button>
+                                    </div>
+                                    <div class="image-preview-container" id="image-preview-container">
+                                        <!-- Image previews will be added here -->
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="form-navigation">
+                                <button type="submit" class="btn btn-success">
+                                    <i class="fas fa-paper-plane"></i> Submit Property
+                                </button>
+                            </div>
+                        </div>
+                    </form>
                 </div>
-                
-                <div class="form-group">
-                    <label for="property-description">Description *</label>
-                    <textarea id="property-description" name="property-description" rows="5" required></textarea>
-                </div>
-                
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="property-price">Price ($) *</label>
-                        <input type="number" id="property-price" name="property-price" required>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="property-size">Size (acres) *</label>
-                        <input type="number" id="property-size" name="property-size" required>
-                    </div>
-                </div>
-                
-                <div class="form-group">
-                    <label for="property-location">Location *</label>
-                    <input type="text" id="property-location" name="property-location" required>
-                </div>
-                
-                <div class="form-group">
-                    <label for="property-terrain">Terrain Type</label>
-                    <select id="property-terrain" name="property-terrain">
-                        <option value="flat">Flat</option>
-                        <option value="hilly">Hilly</option>
-                        <option value="mountainous">Mountainous</option>
-                        <option value="waterfront">Waterfront</option>
-                    </select>
-                </div>
-                
-                <div class="form-group">
-                    <label for="property-images">Upload Images</label>
-                    <input type="file" id="property-images" name="property-images" multiple>
-                </div>
-                
-                <div class="form-group">
-                    <label>
-                        <input type="checkbox" name="terms" required> I agree to the Terms and Conditions *
-                    </label>
-                </div>
-                
-                <button type="submit" class="btn-primary">List Property</button>
-            </form>
-        </section>
+            </div>
+        </div>
     </main>
 
+    <!-- Footer -->
     <footer>
-        <p>&copy; 2025 Land Mart. All rights reserved.</p>
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-column">
+                    <h3 class="footer-heading">Land Mart</h3>
+                    <p>Your trusted platform for buying and selling land properties across India.</p>
+                    <div class="social-links">
+                        <a href="#"><i class="fab fa-facebook-f"></i></a>
+                        <a href="#"><i class="fab fa-twitter"></i></a>
+                        <a href="#"><i class="fab fa-instagram"></i></a>
+                        <a href="#"><i class="fab fa-linkedin-in"></i></a>
+                    </div>
+                </div>
+
+                <div class="footer-column">
+                    <h3 class="footer-heading">Quick Links</h3>
+                    <ul class="footer-links">
+                        <li><a href="index.html">Home</a></li>
+                        <li><a href="properties.html">Properties</a></li>
+                        <li><a href="add-property.html">Sell Property</a></li>
+                        <li><a href="unified-dashboard.html">Dashboard</a></li>
+                        <li><a href="login.html">Login</a></li>
+                    </ul>
+                </div>
+
+                <div class="footer-column">
+                    <h3 class="footer-heading">Categories</h3>
+                    <ul class="footer-links">
+                        <li><a href="#">Agricultural Land</a></li>
+                        <li><a href="#">Commercial Plots</a></li>
+                        <li><a href="#">Residential Land</a></li>
+                        <li><a href="#">Industrial Land</a></li>
+                        <li><a href="#">Farm Houses</a></li>
+                    </ul>
+                </div>
+
+                <div class="footer-column">
+                    <h3 class="footer-heading">Contact Us</h3>
+                    <ul class="footer-links">
+                        <li><i class="fas fa-map-marker-alt"></i> Chennai, Tamil Nadu</li>
+                        <li><i class="fas fa-phone"></i> +91 98765 43210</li>
+                        <li><i class="fas fa-envelope"></i> info@landmart.com</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="copyright">
+                <p>&copy; 2025 Land Mart. All rights reserved.</p>
+                <div class="legal-links">
+                    <a href="#">Privacy Policy</a> |
+                    <a href="#">Terms of Service</a> |
+                    <a href="#">Cookie Policy</a>
+                </div>
+            </div>
+        </div>
     </footer>
 
     <script src="js/main.js"></script>
+    <script>
+        // Form handling logic is in main.js
+    </script>
 </body>
+
 </html>

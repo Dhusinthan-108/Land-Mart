@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Panel - Land Mart</title>
+    <link rel="stylesheet" href="styles/main.css">
+</head>
+<body>
+    <header>
+        <nav>
+            <div class="logo">Land Mart</div>
+            <ul>
+                <li><a href="index.html">Home</a></li>
+                <li><a href="properties.html">Properties</a></li>
+                <li><a href="add-property.html">Sell Property</a></li>
+                <li><a href="unified-dashboard.html">Dashboard</a></li>
+                <li><a href="settings.html">Settings</a></li>
+                <li><a href="admin.html">Admin</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <main>
+        <section class="settings-container">
+            <h1>Admin Panel</h1>
+            
+            <div class="settings-layout">
+                <div class="settings-nav">
+                    <ul>
+                        <li class="active"><a href="#general">General</a></li>
+                        <li><a href="#features">Features</a></li>
+                        <li><a href="#performance">Performance</a></li>
+                        <li><a href="#security">Security</a></li>
+                        <li><a href="#ui-ux">UI/UX</a></li>
+                    </ul>
+                </div>
+                
+                <div class="settings-content">
+                    <!-- General Settings Section -->
+                    <div id="general" class="settings-section">
+                        <h2>General Settings</h2>
+                        <form id="general-settings-form">
+                            <div class="form-group">
+                                <label for="app-name">App Name</label>
+                                <input type="text" id="app-name" name="appName" value="Land Mart">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="app-version">App Version</label>
+                                <input type="text" id="app-version" name="appVersion" value="1.0.0" readonly>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>
+                                    <input type="checkbox" id="maintenance-mode" name="maintenanceMode"> Maintenance Mode
+                                </label>
+                                <p class="help-text">Enable maintenance mode to temporarily disable the application for users</p>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="max-properties">Max Properties Per User</label>
+                                <input type="number" id="max-properties" name="maxPropertiesPerUser" value="50" min="1">
+                            </div>
+                            
+                            <button type="submit" class="btn-primary">Save General Settings</button>
+                        </form>
+                    </div>
+                    
+                    <!-- Features Settings Section -->
+                    <div id="features" class="settings-section" style="display: none;">
+                        <h2>Feature Flags</h2>
+                        <form id="features-settings-form">
+                            <div class="form-group">
+                                <label>
+                                    <input type="checkbox" id="enable-reviews" name="enablePropertyReviews" checked> Enable Property Reviews
+                                </label>
+                                <p class="help-text">Allow users to review and rate properties</p>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>
+                                    <input type="checkbox" id="enable-messaging" name="enableMessaging" checked> Enable Messaging
+                                </label>
+                                <p class="help-text">Allow users to communicate through the messaging system</p>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>
+                                    <input type="checkbox" id="enable-payments" name="enablePayments"> Enable Payments
+                                </label>
+                                <p class="help-text">Enable payment processing for premium features</p>
+                            </div>
+                            
+                            <button type="submit" class="btn-primary">Save Feature Settings</button>
+                        </form>
+                    </div>
+                    
+                    <!-- Performance Settings Section -->
+                    <div id="performance" class="settings-section" style="display: none;">
+                        <h2>Performance Settings</h2>
+                        <form id="performance-settings-form">
+                            <div class="form-group">
+                                <label for="cache-timeout">Cache Timeout (seconds)</label>
+                                <input type="number" id="cache-timeout" name="cacheTimeout" value="300" min="0">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="max-users">Max Concurrent Users</label>
+                                <input type="number" id="max-users" name="maxConcurrentUsers" value="1000" min="1">
+                            </div>
+                            
+                            <button type="submit" class="btn-primary">Save Performance Settings</button>
+                        </form>
+                    </div>
+                    
+                    <!-- Security Settings Section -->
+                    <div id="security" class="settings-section" style="display: none;">
+                        <h2>Security Settings</h2>
+                        <form id="security-settings-form">
+                            <div class="form-group">
+                                <label for="password-min-length">Minimum Password Length</label>
+                                <input type="number" id="password-min-length" name="passwordMinLength" value="8" min="4" max="128">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="session-timeout">Session Timeout (hours)</label>
+                                <input type="number" id="session-timeout" name="sessionTimeout" value="24" min="1">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>
+                                    <input type="checkbox" id="enable-captcha" name="enableCaptcha"> Enable CAPTCHA
+                                </label>
+                                <p class="help-text">Require CAPTCHA verification for sensitive actions</p>
+                            </div>
+                            
+                            <button type="submit" class="btn-primary">Save Security Settings</button>
+                        </form>
+                    </div>
+                    
+                    <!-- UI/UX Settings Section -->
+                    <div id="ui-ux" class="settings-section" style="display: none;">
+                        <h2>UI/UX Settings</h2>
+                        <form id="ui-ux-settings-form">
+                            <div class="form-group">
+                                <label for="default-theme">Default Theme</label>
+                                <select id="default-theme" name="defaultTheme">
+                                    <option value="light">Light</option>
+                                    <option value="dark">Dark</option>
+                                </select>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>
+                                    <input type="checkbox" id="enable-animations" name="enableAnimations" checked> Enable Animations
+                                </label>
+                                <p class="help-text">Show animations and transitions throughout the app</p>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="items-per-page">Items Per Page</label>
+                                <input type="number" id="items-per-page" name="itemsPerPage" value="10" min="5" max="50">
+                            </div>
+                            
+                            <button type="submit" class="btn-primary">Save UI/UX Settings</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <p>&copy; 2025 Land Mart. All rights reserved.</p>
+    </footer>
+
+    <script src="js/main.js"></script>
+    <script>
+        // Admin panel functionality
+        document.addEventListener('DOMContentLoaded', function() {
+            // Settings navigation
+            const navLinks = document.querySelectorAll('.settings-nav a');
+            const sections = document.querySelectorAll('.settings-section');
+            
+            navLinks.forEach(link => {
+                link.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    
+                    // Remove active class from all links and sections
+                    navLinks.forEach(l => l.parentElement.classList.remove('active'));
+                    sections.forEach(section => section.style.display = 'none');
+                    
+                    // Add active class to clicked link
+                    this.parentElement.classList.add('active');
+                    
+                    // Show corresponding section
+                    const targetId = this.getAttribute('href').substring(1);
+                    document.getElementById(targetId).style.display = 'block';
+                });
+            });
+            
+            // Load current app settings
+            loadAppSettings();
+            
+            // Form submission handlers
+            document.getElementById('general-settings-form').addEventListener('submit', function(e) {
+                e.preventDefault();
+                saveAppSettings(new FormData(this), 'General');
+            });
+            
+            document.getElementById('features-settings-form').addEventListener('submit', function(e) {
+                e.preventDefault();
+                saveAppSettings(new FormData(this), 'Features');
+            });
+            
+            document.getElementById('performance-settings-form').addEventListener('submit', function(e) {
+                e.preventDefault();
+                saveAppSettings(new FormData(this), 'Performance');
+            });
+            
+            document.getElementById('security-settings-form').addEventListener('submit', function(e) {
+                e.preventDefault();
+                saveAppSettings(new FormData(this), 'Security');
+            });
+            
+            document.getElementById('ui-ux-settings-form').addEventListener('submit', function(e) {
+                e.preventDefault();
+                saveAppSettings(new FormData(this), 'UI/UX');
+            });
+        });
+        
+        // Load app settings from backend
+        async function loadAppSettings() {
+            try {
+                const response = await fetch('http://localhost:5501/api/app-settings');
+                if (response.ok) {
+                    const settings = await response.json();
+                    
+                    // Populate general settings
+                    document.getElementById('app-name').value = settings.appName || 'Land Mart';
+                    document.getElementById('app-version').value = settings.appVersion || '1.0.0';
+                    document.getElementById('maintenance-mode').checked = settings.maintenanceMode || false;
+                    document.getElementById('max-properties').value = settings.maxPropertiesPerUser || 50;
+                    
+                    // Populate features settings
+                    document.getElementById('enable-reviews').checked = settings.enablePropertyReviews !== false;
+                    document.getElementById('enable-messaging').checked = settings.enableMessaging !== false;
+                    document.getElementById('enable-payments').checked = settings.enablePayments || false;
+                    
+                    // Populate performance settings
+                    document.getElementById('cache-timeout').value = settings.cacheTimeout || 300;
+                    document.getElementById('max-users').value = settings.maxConcurrentUsers || 1000;
+                    
+                    // Populate security settings
+                    document.getElementById('password-min-length').value = settings.passwordMinLength || 8;
+                    document.getElementById('session-timeout').value = settings.sessionTimeout || 24;
+                    document.getElementById('enable-captcha').checked = settings.enableCaptcha || false;
+                    
+                    // Populate UI/UX settings
+                    document.getElementById('default-theme').value = settings.defaultTheme || 'light';
+                    document.getElementById('enable-animations').checked = settings.enableAnimations !== false;
+                    document.getElementById('items-per-page').value = settings.itemsPerPage || 10;
+                } else {
+                    console.error('Failed to load app settings');
+                }
+            } catch (error) {
+                console.error('Error loading app settings:', error);
+            }
+        }
+        
+        // Save app settings to backend
+        async function saveAppSettings(formData, categoryName) {
+            try {
+                // Convert FormData to JSON object
+                const settings = {};
+                for (const [key, value] of formData.entries()) {
+                    // Handle checkbox values
+                    if (key === 'maintenanceMode' || key === 'enablePropertyReviews' || 
+                        key === 'enableMessaging' || key === 'enablePayments' ||
+                        key === 'enableCaptcha' || key === 'enableAnimations') {
+                        settings[key] = value === 'on' || value === true;
+                    } else if (!isNaN(value) && value !== '') {
+                        // Convert numeric values
+                        settings[key] = Number(value);
+                    } else {
+                        settings[key] = value;
+                    }
+                }
+                
+                const response = await fetch('http://localhost:5501/api/app-settings', {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(settings)
+                });
+                
+                if (response.ok) {
+                    alert(`${categoryName} settings saved successfully!`);
+                } else {
+                    const error = await response.json();
+                    alert(`Failed to save ${categoryName} settings: ${error.message}`);
+                }
+            } catch (error) {
+                console.error('Error saving app settings:', error);
+                alert(`Error saving ${categoryName} settings: ${error.message}`);
+            }
+        }
+    </script>
+</body>
+</html>

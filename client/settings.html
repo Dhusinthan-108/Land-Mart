@@ -1,107 +1,453 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Settings - Land Mart</title>
-    <link rel="stylesheet" href="styles/main.css">
+    <link rel="stylesheet" href="css/style.css">
+    <!-- Inter Font -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- API Configuration -->
+    <script src="js/api-config.js"></script>
 </head>
+
 <body>
+    <!-- Header -->
     <header>
-        <nav>
-            <div class="logo">Land Mart</div>
-            <ul>
-                <li><a href="index.html">Home</a></li>
-                <li><a href="properties.html">Properties</a></li>
-                <li><a href="add-property.html">Sell Property</a></li>
-                <li><a href="unified-dashboard.html">Dashboard</a></li>
-                <li><a href="settings.html">Settings</a></li>
-            </ul>
-        </nav>
+        <div class="container">
+            <nav class="navbar">
+                <a href="index.html" class="navbar-brand">Land Mart</a>
+                <ul class="navbar-nav">
+                    <li><a href="index.html" class="nav-link">Home</a></li>
+                    <li><a href="properties.html" class="nav-link">Properties</a></li>
+                    <li><a href="add-property.html" class="nav-link">Sell Property</a></li>
+                    <li><a href="unified-dashboard.html" class="nav-link">Dashboard</a></li>
+                    <li><a href="settings.html" class="nav-link active">Settings</a></li>
+                    <li><a href="login.html" class="nav-link">Login</a></li>
+                </ul>
+                <button class="mobile-menu-button">
+                    <i class="fas fa-bars"></i>
+                </button>
+            </nav>
+        </div>
     </header>
 
-    <main>
-        <section class="settings-container">
-            <h1>Account Settings</h1>
-            
+    <main class="settings-main">
+        <div class="container">
+            <div class="settings-header text-center mb-5">
+                <h1 class="display-4 mb-3">Account Settings</h1>
+                <p class="lead">Manage your account preferences and security settings</p>
+            </div>
+
             <div class="settings-layout">
-                <div class="settings-nav">
-                    <ul>
-                        <li class="active"><a href="#profile">Profile</a></li>
-                        <li><a href="#notifications">Notifications</a></li>
-                        <li><a href="#privacy">Privacy</a></li>
-                        <li><a href="#security">Security</a></li>
-                        <li><a href="#billing">Billing</a></li>
-                    </ul>
-                </div>
-                
+                <aside class="settings-sidebar">
+                    <div class="settings-nav">
+                        <ul class="nav flex-column">
+                            <li class="nav-item">
+                                <a href="#profile" class="nav-link active">
+                                    <i class="fas fa-user"></i> Profile
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="#notifications" class="nav-link">
+                                    <i class="fas fa-bell"></i> Notifications
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="#privacy" class="nav-link">
+                                    <i class="fas fa-shield-alt"></i> Privacy
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="#security" class="nav-link">
+                                    <i class="fas fa-lock"></i> Security
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+                </aside>
+
                 <div class="settings-content">
+                    <!-- Profile Settings Section -->
                     <div id="profile" class="settings-section">
-                        <h2>Profile Information</h2>
-                        <form id="profile-form">
+                        <h2 class="section-title">Profile Information</h2>
+                        <form id="profile-form" class="settings-form">
                             <div class="form-group">
-                                <label for="full-name">Full Name</label>
-                                <input type="text" id="full-name" name="full-name" value="John Doe">
+                                <label for="settings-full-name" class="form-label">Full Name</label>
+                                <input type="text" id="settings-full-name" class="form-control"
+                                    placeholder="Enter your full name">
                             </div>
-                            
+
                             <div class="form-group">
-                                <label for="email">Email Address</label>
-                                <input type="email" id="email" name="email" value="john.doe@example.com">
+                                <label for="settings-email" class="form-label">Email Address</label>
+                                <input type="email" id="settings-email" class="form-control"
+                                    placeholder="Enter your email address" disabled>
+                                <small class="form-text text-muted">Email cannot be changed from here. Contact support
+                                    to update email.</small>
                             </div>
-                            
+
                             <div class="form-group">
-                                <label for="phone">Phone Number</label>
-                                <input type="tel" id="phone" name="phone" value="+1 (555) 123-4567">
+                                <label for="settings-phone" class="form-label">Phone Number</label>
+                                <input type="tel" id="settings-phone" class="form-control"
+                                    placeholder="Enter your phone number">
                             </div>
-                            
+
                             <div class="form-group">
-                                <label for="bio">Bio</label>
-                                <textarea id="bio" name="bio" rows="4">Real estate investor specializing in land properties.</textarea>
+                                <label for="settings-bio" class="form-label">Bio</label>
+                                <textarea id="settings-bio" class="form-control" rows="4"
+                                    placeholder="Tell us about yourself"></textarea>
                             </div>
-                            
-                            <button type="submit" class="btn-primary">Save Changes</button>
+
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save"></i> Save Changes
+                            </button>
                         </form>
                     </div>
-                    
+
+                    <!-- Notification Settings Section -->
                     <div id="notifications" class="settings-section" style="display: none;">
-                        <h2>Notification Preferences</h2>
-                        <form id="notifications-form">
+                        <h2 class="section-title">Notification Preferences</h2>
+                        <form id="notifications-form" class="settings-form">
                             <div class="form-group">
-                                <label>
-                                    <input type="checkbox" name="email-notifications" checked> Email Notifications
-                                </label>
+                                <div class="form-check">
+                                    <input type="checkbox" id="email-notifications" name="email-notifications"
+                                        class="form-check-input">
+                                    <label for="email-notifications" class="form-check-label">Email
+                                        Notifications</label>
+                                </div>
+                                <small class="form-text text-muted">Receive notifications via email</small>
                             </div>
-                            
+
                             <div class="form-group">
-                                <label>
-                                    <input type="checkbox" name="sms-notifications"> SMS Notifications
-                                </label>
+                                <div class="form-check">
+                                    <input type="checkbox" id="message-notifications" name="message-notifications"
+                                        class="form-check-input" checked>
+                                    <label for="message-notifications" class="form-check-label">Message
+                                        Notifications</label>
+                                </div>
+                                <small class="form-text text-muted">Get notified when you receive new messages</small>
                             </div>
-                            
+
                             <div class="form-group">
-                                <label>
-                                    <input type="checkbox" name="property-updates" checked> Property Updates
-                                </label>
+                                <div class="form-check">
+                                    <input type="checkbox" id="property-updates" name="property-updates"
+                                        class="form-check-input" checked>
+                                    <label for="property-updates" class="form-check-label">Property Updates</label>
+                                </div>
+                                <small class="form-text text-muted">Get notified about updates to properties you've
+                                    saved</small>
                             </div>
-                            
-                            <div class="form-group">
-                                <label>
-                                    <input type="checkbox" name="message-notifications" checked> Message Notifications
-                                </label>
-                            </div>
-                            
-                            <button type="submit" class="btn-primary">Save Preferences</button>
+
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save"></i> Save Preferences
+                            </button>
                         </form>
+                    </div>
+
+                    <!-- Privacy Settings Section -->
+                    <div id="privacy" class="settings-section" style="display: none;">
+                        <h2 class="section-title">Privacy Settings</h2>
+                        <form id="privacy-form" class="settings-form">
+                            <div class="form-group">
+                                <div class="form-check">
+                                    <input type="checkbox" id="profile-public" class="form-check-input" checked>
+                                    <label for="profile-public" class="form-check-label">Public Profile</label>
+                                </div>
+                                <small class="form-text text-muted">Allow other users to view your profile</small>
+                            </div>
+
+                            <div class="form-group">
+                                <div class="form-check">
+                                    <input type="checkbox" id="show-contact-info" class="form-check-input" checked>
+                                    <label for="show-contact-info" class="form-check-label">Show Contact
+                                        Information</label>
+                                </div>
+                                <small class="form-text text-muted">Display your contact information to other
+                                    users</small>
+                            </div>
+
+                            <div class="form-group">
+                                <div class="form-check">
+                                    <input type="checkbox" id="activity-visibility" class="form-check-input" checked>
+                                    <label for="activity-visibility" class="form-check-label">Activity
+                                        Visibility</label>
+                                </div>
+                                <small class="form-text text-muted">Show your activity to other users</small>
+                            </div>
+
+                            <h3 class="mt-4">Data Management</h3>
+                            <div class="form-group">
+                                <button type="button" class="btn btn-outline" id="export-data">
+                                    <i class="fas fa-download"></i> Export My Data
+                                </button>
+                                <small class="form-text text-muted">Download a copy of your personal data</small>
+                            </div>
+
+                            <div class="form-group">
+                                <button type="button" class="btn btn-outline" id="clear-history">
+                                    <i class="fas fa-trash-alt"></i> Clear Browsing History
+                                </button>
+                                <small class="form-text text-muted">Remove your search and viewing history</small>
+                            </div>
+
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save"></i> Save Privacy Settings
+                            </button>
+                        </form>
+                    </div>
+
+                    <!-- Security Settings Section -->
+                    <div id="security" class="settings-section" style="display: none;">
+                        <h2 class="section-title">Security</h2>
+                        <form id="security-form" class="settings-form">
+                            <div class="form-group">
+                                <label for="current-password" class="form-label">Current Password</label>
+                                <input type="password" id="current-password" class="form-control"
+                                    placeholder="Enter your current password" required>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="new-password" class="form-label">New Password</label>
+                                <input type="password" id="new-password" class="form-control"
+                                    placeholder="Enter new password" required>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="confirm-password" class="form-label">Confirm New Password</label>
+                                <input type="password" id="confirm-password" class="form-control"
+                                    placeholder="Confirm new password" required>
+                            </div>
+
+                            <div class="form-group">
+                                <div class="form-check">
+                                    <input type="checkbox" id="two-factor-auth" class="form-check-input">
+                                    <label for="two-factor-auth" class="form-check-label">Enable Two-Factor
+                                        Authentication</label>
+                                </div>
+                                <small class="form-text text-muted">Add an extra layer of security to your
+                                    account</small>
+                            </div>
+
+                            <div class="form-group">
+                                <button type="button" class="btn btn-outline" id="manage-devices">
+                                    <i class="fas fa-laptop"></i> Manage Active Sessions
+                                </button>
+                            </div>
+
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-lock"></i> Update Password
+                            </button>
+                        </form>
+
+                        <div class="danger-zone card mt-4">
+                            <h3 class="section-title">Danger Zone</h3>
+                            <div class="form-group">
+                                <button type="button" class="btn btn-danger" id="delete-account">
+                                    <i class="fas fa-trash-alt"></i> Delete Account
+                                </button>
+                                <small class="form-text text-muted">Permanently delete your account and all associated
+                                    data</small>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
-        </section>
+        </div>
     </main>
 
+    <!-- Footer -->
     <footer>
-        <p>&copy; 2025 Land Mart. All rights reserved.</p>
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-column">
+                    <h3 class="footer-heading">Land Mart</h3>
+                    <p>Your trusted platform for buying and selling land properties across India.</p>
+                    <div class="social-links">
+                        <a href="#"><i class="fab fa-facebook-f"></i></a>
+                        <a href="#"><i class="fab fa-twitter"></i></a>
+                        <a href="#"><i class="fab fa-instagram"></i></a>
+                        <a href="#"><i class="fab fa-linkedin-in"></i></a>
+                    </div>
+                </div>
+
+                <div class="footer-column">
+                    <h3 class="footer-heading">Quick Links</h3>
+                    <ul class="footer-links">
+                        <li><a href="index.html">Home</a></li>
+                        <li><a href="properties.html">Properties</a></li>
+                        <li><a href="add-property.html">Sell Property</a></li>
+                        <li><a href="unified-dashboard.html">Dashboard</a></li>
+                        <li><a href="login.html">Login</a></li>
+                    </ul>
+                </div>
+
+                <div class="footer-column">
+                    <h3 class="footer-heading">Categories</h3>
+                    <ul class="footer-links">
+                        <li><a href="#">Agricultural Land</a></li>
+                        <li><a href="#">Commercial Plots</a></li>
+                        <li><a href="#">Residential Land</a></li>
+                        <li><a href="#">Industrial Land</a></li>
+                        <li><a href="#">Farm Houses</a></li>
+                    </ul>
+                </div>
+
+                <div class="footer-column">
+                    <h3 class="footer-heading">Contact Us</h3>
+                    <ul class="footer-links">
+                        <li><i class="fas fa-map-marker-alt"></i> Chennai, Tamil Nadu</li>
+                        <li><i class="fas fa-phone"></i> +91 98765 43210</li>
+                        <li><i class="fas fa-envelope"></i> info@landmart.com</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="copyright">
+                <p>&copy; 2025 Land Mart. All rights reserved.</p>
+                <div class="legal-links">
+                    <a href="#">Privacy Policy</a> |
+                    <a href="#">Terms of Service</a> |
+                    <a href="#">Cookie Policy</a>
+                </div>
+            </div>
+        </div>
     </footer>
 
     <script src="js/main.js"></script>
+    <script>
+        // Settings navigation functionality
+        document.addEventListener('DOMContentLoaded', function () {
+            // Check if user is logged in
+            const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+            if (!currentUser) {
+                window.location.href = 'login.html';
+                return;
+            }
+
+            // Check if user is admin and show admin panel link
+            if (currentUser && currentUser.role === 'admin') {
+                // Add admin panel link to settings nav
+                const settingsNav = document.querySelector('.settings-nav ul');
+                const adminLi = document.createElement('li');
+                adminLi.className = 'nav-item';
+                adminLi.innerHTML = '<a href="admin.html" class="nav-link"><i class="fas fa-cog"></i> Admin Panel</a>';
+                settingsNav.appendChild(adminLi);
+            }
+
+            // Load user profile data
+            loadUserProfile();
+
+            const navLinks = document.querySelectorAll('.settings-nav a');
+            const sections = document.querySelectorAll('.settings-section');
+
+            navLinks.forEach(link => {
+                link.addEventListener('click', function (e) {
+                    e.preventDefault();
+
+                    // Remove active class from all links and sections
+                    navLinks.forEach(l => l.parentElement.classList.remove('active'));
+                    sections.forEach(section => section.style.display = 'none');
+
+                    // Add active class to clicked link
+                    this.parentElement.classList.add('active');
+
+                    // Show corresponding section
+                    const targetId = this.getAttribute('href').substring(1);
+                    document.getElementById(targetId).style.display = 'block';
+                });
+            });
+
+            // Add event listeners for buttons
+            document.getElementById('export-data').addEventListener('click', exportUserData);
+            document.getElementById('clear-history').addEventListener('click', clearBrowsingHistory);
+            document.getElementById('manage-devices').addEventListener('click', manageDevices);
+            document.getElementById('delete-account').addEventListener('click', deleteAccount);
+
+            // Mobile menu toggle
+            const mobileMenuButton = document.querySelector('.mobile-menu-button');
+            const navbarNav = document.querySelector('.navbar-nav');
+
+            if (mobileMenuButton && navbarNav) {
+                mobileMenuButton.addEventListener('click', function () {
+                    navbarNav.classList.toggle('show');
+                });
+            }
+        });
+
+        // Load user profile data from backend
+        async function loadUserProfile() {
+            try {
+                const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+                if (!currentUser) {
+                    showNotification('You must be logged in to access settings.', false);
+                    return;
+                }
+
+                const response = await fetch(`${API_CONFIG.BASE_URL}/api/users/profile`, {
+                    method: 'GET',
+                    headers: getAuthHeaders()
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const userData = await response.json();
+
+                // Populate profile form fields
+                document.getElementById('settings-full-name').value = userData.name || '';
+                document.getElementById('settings-email').value = userData.email || '';
+                document.getElementById('settings-phone').value = userData.phone || '';
+                document.getElementById('settings-bio').value = userData.bio || '';
+
+                // Load notification preferences
+                document.getElementById('email-notifications').checked = userData.emailNotifications !== false;
+                document.getElementById('message-notifications').checked = userData.messageNotifications !== false;
+                document.getElementById('property-updates').checked = userData.propertyUpdates !== false;
+
+                // Load privacy settings
+                document.getElementById('profile-public').checked = userData.profilePublic !== false;
+                document.getElementById('show-contact-info').checked = userData.showContactInfo !== false;
+                document.getElementById('activity-visibility').checked = userData.activityVisibility !== false;
+
+                // Load security settings
+                document.getElementById('two-factor-auth').checked = userData.twoFactorAuth || false;
+
+            } catch (error) {
+                console.error('Error loading user profile:', error);
+                showNotification('Error loading profile data. Please try again later.', false);
+            }
+        }
+
+        // Export user data
+        function exportUserData() {
+            showNotification('Data export feature will be implemented soon.', false);
+        }
+
+        // Clear browsing history
+        function clearBrowsingHistory() {
+            if (confirm('Are you sure you want to clear your browsing history?')) {
+                showNotification('Browsing history cleared successfully!', true);
+            }
+        }
+
+        // Manage devices
+        function manageDevices() {
+            showNotification('Device management feature will be implemented soon.', false);
+        }
+
+        // Delete account
+        function deleteAccount() {
+            if (confirm('Are you sure you want to delete your account? This action cannot be undone and will permanently delete all your data.')) {
+                showNotification('Account deletion feature will be implemented soon.', false);
+            }
+        }
+
+    </script>
 </body>
+
 </html>

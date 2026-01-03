@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image Upload Test - Land Mart</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            max-width: 600px;
+            width: 100%;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+        }
+
+        .upload-area {
+            border: 3px dashed #ddd;
+            border-radius: 15px;
+            padding: 40px;
+            text-align: center;
+            background: #f9f9f9;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .upload-area:hover {
+            border-color: #667eea;
+            background: #f0f0ff;
+        }
+
+        .upload-area.dragover {
+            border-color: #667eea;
+            background: #e8e8ff;
+            transform: scale(1.02);
+        }
+
+        .upload-icon {
+            font-size: 60px;
+            margin-bottom: 20px;
+        }
+
+        .upload-text {
+            font-size: 18px;
+            color: #666;
+            margin-bottom: 20px;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 25px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        .status {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+            font-weight: 600;
+            display: none;
+        }
+
+        .status.success {
+            background: #d1fae5;
+            color: #065f46;
+            display: block;
+        }
+
+        .status.error {
+            background: #fee2e2;
+            color: #991b1b;
+            display: block;
+        }
+
+        .previews {
+            margin-top: 30px;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            gap: 15px;
+        }
+
+        .preview-item {
+            position: relative;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .preview-item img {
+            width: 100%;
+            height: 120px;
+            object-fit: cover;
+            display: block;
+        }
+
+        .remove-btn {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            background: #ef4444;
+            color: white;
+            border: none;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s;
+        }
+
+        .remove-btn:hover {
+            background: #dc2626;
+            transform: scale(1.1);
+        }
+
+        .debug-console {
+            margin-top: 30px;
+            background: #1f2937;
+            color: #10b981;
+            padding: 20px;
+            border-radius: 10px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .debug-line {
+            margin: 5px 0;
+            color: #10b981;
+        }
+
+        .debug-line.info {
+            color: #3b82f6;
+        }
+
+        .debug-line.error {
+            color: #ef4444;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>🖼️ Image Upload Test</h1>
+        <p class="subtitle">Test the fixed image upload functionality</p>
+
+        <div class="upload-area" id="uploadArea">
+            <div class="upload-icon">📤</div>
+            <div class="upload-text" id="uploadText">
+                Drag & drop images here<br>or click to browse
+            </div>
+            <input type="file" id="fileInput" accept="image/*" multiple style="display: none;">
+            <button type="button" class="btn" onclick="document.getElementById('fileInput').click()">
+                Select Images
+            </button>
+        </div>
+
+        <div class="status" id="status"></div>
+
+        <div class="previews" id="previews"></div>
+
+        <div class="debug-console" id="debugConsole">
+            <div class="debug-line">Console ready. Upload images to see debug output...</div>
+        </div>
+    </div>
+
+    <script>
+        let selectedImages = [];
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+        const uploadText = document.getElementById('uploadText');
+        const status = document.getElementById('status');
+        const previews = document.getElementById('previews');
+        const debugConsole = document.getElementById('debugConsole');
+
+        // Debug logging function
+        function log(message, type = 'info') {
+            const line = document.createElement('div');
+            line.className = `debug-line ${type}`;
+            line.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            debugConsole.appendChild(line);
+            debugConsole.scrollTop = debugConsole.scrollHeight;
+            console.log(message);
+        }
+
+        // Show status message
+        function showStatus(message, isError = false) {
+            status.textContent = message;
+            status.className = isError ? 'status error' : 'status success';
+        }
+
+        // File input change handler
+        fileInput.addEventListener('change', (e) => {
+            log(`File input changed: ${e.target.files.length} file(s) selected`);
+            handleFiles(e.target.files);
+        });
+
+        // Drag and drop handlers
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            uploadArea.addEventListener(eventName, preventDefaults, false);
+        });
+
+        function preventDefaults(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+
+        uploadArea.addEventListener('dragenter', () => {
+            uploadArea.classList.add('dragover');
+            log('Drag enter detected');
+        });
+
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('dragover');
+        });
+
+        uploadArea.addEventListener('drop', (e) => {
+            uploadArea.classList.remove('dragover');
+            const files = e.dataTransfer.files;
+            log(`Files dropped: ${files.length} file(s)`);
+            handleFiles(files);
+        });
+
+        // Handle file selection
+        function handleFiles(files) {
+            if (!files || files.length === 0) {
+                log('No files provided', 'error');
+                showStatus('No files selected', true);
+                return;
+            }
+
+            log(`Processing ${files.length} file(s)...`);
+
+            for (let i = 0; i < files.length; i++) {
+                const file = files[i];
+
+                log(`File ${i + 1}: ${file.name} (${file.type}, ${(file.size / 1024).toFixed(2)} KB)`);
+
+                if (!file.type.match('image.*')) {
+                    log(`Skipping ${file.name}: not an image`, 'error');
+                    showStatus(`${file.name} is not an image file`, true);
+                    continue;
+                }
+
+                const reader = new FileReader();
+
+                reader.onload = (e) => {
+                    log(`✓ Successfully loaded: ${file.name}`);
+                    const imageData = {
+                        file: file,
+                        dataUrl: e.target.result,
+                        name: file.name
+                    };
+                    selectedImages.push(imageData);
+                    displayPreview(imageData, selectedImages.length - 1);
+                    updateUploadText();
+                };
+
+                reader.onerror = () => {
+                    log(`✗ Error reading file: ${file.name}`, 'error');
+                    showStatus(`Error reading ${file.name}`, true);
+                };
+
+                reader.readAsDataURL(file);
+            }
+        }
+
+        // Display image preview
+        function displayPreview(imageData, index) {
+            log(`Creating preview for image ${index + 1}`);
+
+            const previewDiv = document.createElement('div');
+            previewDiv.className = 'preview-item';
+            previewDiv.id = `preview-${index}`;
+
+            previewDiv.innerHTML = `
+                <img src="${imageData.dataUrl}" alt="${imageData.name}">
+                <button class="remove-btn" onclick="removeImage(${index})">✕</button>
+            `;
+
+            previews.appendChild(previewDiv);
+            log(`✓ Preview added to DOM for ${imageData.name}`);
+        }
+
+        // Remove image
+        function removeImage(index) {
+            log(`Removing image ${index + 1}: ${selectedImages[index].name}`);
+            selectedImages.splice(index, 1);
+
+            const previewElement = document.getElementById(`preview-${index}`);
+            if (previewElement) {
+                previewElement.remove();
+            }
+
+            // Re-render all previews
+            previews.innerHTML = '';
+            selectedImages.forEach((img, idx) => {
+                displayPreview(img, idx);
+            });
+
+            updateUploadText();
+            log(`✓ Image removed. Total: ${selectedImages.length}`);
+        }
+
+        // Update upload text
+        function updateUploadText() {
+            if (selectedImages.length === 0) {
+                uploadText.innerHTML = 'Drag & drop images here<br>or click to browse';
+                uploadText.style.color = '#666';
+                showStatus('No images selected', false);
+            } else {
+                uploadText.innerHTML = `${selectedImages.length} image${selectedImages.length > 1 ? 's' : ''} selected ✓`;
+                uploadText.style.color = '#10b981';
+                showStatus(`Successfully loaded ${selectedImages.length} image${selectedImages.length > 1 ? 's' : ''}`, false);
+            }
+        }
+
+        log('Image upload test page loaded successfully!');
+    </script>
+</body>
+
+</html>

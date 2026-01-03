@@ -1,143 +1,805 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Unified Dashboard - Land Mart</title>
-    <link rel="stylesheet" href="styles/main.css">
+    <title>Dashboard - Land Mart</title>
+    <meta name="description" content="Manage your properties and track activities on Land Mart">
+    <link rel="stylesheet" href="css/style.css">
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- API Configuration -->
+    <script src="js/api-config.js"></script>
+    <style>
+        :root {
+            /* Core Design Tokens */
+            --primary: #6366f1;
+            --primary-dark: #4f46e5;
+            --secondary: #64748b;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --light: #f8fafc;
+            --dark: #1e293b;
+            --gray-100: #f1f5f9;
+            --gray-200: #e2e8f0;
+            --gray-300: #cbd5e1;
+            --gray-400: #94a3b8;
+            --gray-500: #64748b;
+            --white: #ffffff;
+
+            --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+
+            --radius-md: 0.375rem;
+            --radius-lg: 0.5rem;
+            --radius-xl: 1rem;
+
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #f8fafc;
+            background-image:
+                radial-gradient(at 0% 0%, rgba(99, 102, 241, 0.15) 0px, transparent 50%),
+                radial-gradient(at 100% 0%, rgba(139, 92, 246, 0.15) 0px, transparent 50%),
+                radial-gradient(at 100% 100%, rgba(236, 72, 153, 0.15) 0px, transparent 50%);
+            background-attachment: fixed;
+            color: var(--dark);
+            min-height: 100vh;
+        }
+
+        /* Navbar styles */
+        .navbar {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+            box-shadow: var(--shadow-sm);
+            padding: 1rem 0;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .navbar-brand {
+            font-size: 1.5rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, var(--primary) 0%, #8b5cf6 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-decoration: none;
+            letter-spacing: -0.02em;
+        }
+
+        .navbar-nav {
+            display: flex;
+            align-items: center;
+            list-style: none;
+            gap: 1.5rem;
+        }
+
+        .nav-link {
+            text-decoration: none;
+            color: var(--secondary);
+            font-weight: 500;
+            padding: 0.5rem 1rem;
+            border-radius: var(--radius-lg);
+            transition: var(--transition);
+        }
+
+        .nav-link:hover,
+        .nav-link.active {
+            color: var(--primary);
+            background: rgba(99, 102, 241, 0.1);
+        }
+
+        .dashboard-main {
+            padding: 2rem 0;
+            animation: fadeIn 0.6s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .dashboard-layout {
+            display: grid;
+            grid-template-columns: 280px 1fr;
+            gap: 2rem;
+            margin-top: 2rem;
+            align-items: start;
+        }
+
+        .dashboard-sidebar {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            border-radius: var(--radius-xl);
+            padding: 1.5rem;
+            box-shadow: var(--shadow-lg);
+            position: sticky;
+            top: 100px;
+        }
+
+        .sidebar-nav ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .sidebar-nav .nav-link {
+            display: flex;
+            align-items: center;
+            padding: 1rem;
+            margin-bottom: 0.5rem;
+            border-radius: var(--radius-lg);
+            color: var(--secondary);
+            font-weight: 600;
+            transition: var(--transition);
+        }
+
+        .sidebar-nav .nav-link:hover,
+        .sidebar-nav .nav-link.active {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: white;
+            box-shadow: var(--shadow-md);
+            transform: translateX(5px);
+        }
+
+        .sidebar-nav .nav-link i {
+            width: 24px;
+            margin-right: 1rem;
+            text-align: center;
+            font-size: 1.1rem;
+        }
+
+        .dashboard-content {
+            min-height: 500px;
+        }
+
+        .welcome-banner {
+            background: linear-gradient(135deg, var(--primary) 0%, #8b5cf6 100%);
+            border-radius: var(--radius-xl);
+            padding: 3rem;
+            color: white;
+            margin-bottom: 2rem;
+            box-shadow: var(--shadow-lg);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .welcome-banner::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 300px;
+            height: 300px;
+            background: radial-gradient(circle, rgba(255, 255, 255, 0.2) 0%, transparent 70%);
+            transform: translate(30%, -30%);
+        }
+
+        .welcome-title {
+            font-size: 2rem;
+            font-weight: 800;
+            margin-bottom: 0.5rem;
+            letter-spacing: -0.02em;
+        }
+
+        .welcome-subtitle {
+            font-size: 1.1rem;
+            opacity: 0.9;
+            font-weight: 400;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2.5rem;
+        }
+
+        .stat-card {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            padding: 1.5rem;
+            border-radius: var(--radius-xl);
+            display: flex;
+            align-items: center;
+            box-shadow: var(--shadow);
+            transition: var(--transition);
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: var(--shadow-lg);
+            background: white;
+        }
+
+        .stat-icon {
+            width: 60px;
+            height: 60px;
+            background: rgba(99, 102, 241, 0.1);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            color: var(--primary);
+            margin-right: 1.25rem;
+        }
+
+        .stat-content .stat-number {
+            font-size: 1.75rem;
+            font-weight: 800;
+            color: var(--dark);
+            line-height: 1.2;
+        }
+
+        .stat-content .stat-label {
+            font-size: 0.9rem;
+            color: var(--secondary);
+            font-weight: 500;
+        }
+
+        .properties-section {
+            margin-bottom: 2rem;
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .section-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--dark);
+        }
+
+        .properties-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .no-properties-message {
+            text-align: center;
+            padding: 4rem 2rem;
+            background: rgba(255, 255, 255, 0.6);
+            border: 2px dashed var(--gray-300);
+            border-radius: var(--radius-xl);
+            grid-column: 1 / -1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .no-properties-message i {
+            font-size: 3rem;
+            color: var(--gray-400);
+            margin-bottom: 1rem;
+        }
+
+        .no-properties-message p {
+            margin-bottom: 1.5rem;
+            font-size: 1.1rem;
+            color: var(--secondary);
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.75rem 1.5rem;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: white;
+            text-decoration: none;
+            border-radius: var(--radius-lg);
+            transition: var(--transition);
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+            box-shadow: var(--shadow-md);
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+            filter: brightness(1.1);
+        }
+
+        .mobile-menu-button {
+            display: none;
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            color: var(--dark);
+            cursor: pointer;
+        }
+
+        @media (max-width: 992px) {
+            .dashboard-layout {
+                grid-template-columns: 1fr;
+            }
+
+            .dashboard-sidebar {
+                position: static;
+                margin-bottom: 2rem;
+            }
+
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 576px) {
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .welcome-banner {
+                padding: 2rem;
+            }
+
+            .welcome-title {
+                font-size: 1.5rem;
+            }
+        }
+
+        .btn-primary {
+            background: #3498db;
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .card-title {
+            margin: 0;
+            font-size: 24px;
+        }
+
+        .card-body {
+            padding: 20px;
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 992px) {
+            .dashboard-layout {
+                flex-direction: column;
+            }
+
+            .dashboard-sidebar {
+                flex: 0 0 auto;
+            }
+
+            .stats-grid {
+                grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            }
+        }
+
+        @media (max-width: 768px) {
+            .navbar-nav {
+                display: none;
+            }
+
+            .mobile-menu-button {
+                display: block;
+            }
+
+            .navbar-nav.show {
+                display: flex;
+                flex-direction: column;
+                position: absolute;
+                top: 70px;
+                left: 0;
+                right: 0;
+                background: white;
+                padding: 20px;
+                box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+                z-index: 1000;
+            }
+
+            .navbar-nav.show li {
+                margin: 10px 0;
+            }
+
+            .welcome-title {
+                font-size: 24px;
+            }
+
+            .welcome-subtitle {
+                font-size: 16px;
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .card-header {
+                flex-direction: column;
+                gap: 15px;
+                text-align: center;
+            }
+        }
+
+        @media (max-width: 576px) {
+            .container {
+                padding: 0 15px;
+            }
+
+            .welcome-banner {
+                padding: 20px 15px;
+            }
+
+            .welcome-title {
+                font-size: 20px;
+            }
+
+            .welcome-subtitle {
+                font-size: 14px;
+            }
+
+            .stat-card {
+                flex-direction: column;
+                text-align: center;
+            }
+
+            .stat-icon {
+                margin-right: 0;
+                margin-bottom: 15px;
+            }
+        }
+    </style>
 </head>
-<body>
+
+<body class="unified-dashboard">
+    <!-- Header -->
     <header>
-        <nav>
-            <div class="logo">Land Mart</div>
-            <ul>
-                <li><a href="index.html">Home</a></li>
-                <li><a href="properties.html">Properties</a></li>
-                <li><a href="add-property.html">Sell Property</a></li>
-                <li><a href="unified-dashboard.html" class="active">Dashboard</a></li>
-                <li><a href="login.html">Login</a></li>
-            </ul>
-        </nav>
+        <div class="container">
+            <nav class="navbar">
+                <a href="index.html" class="navbar-brand">Land Mart</a>
+                <ul class="navbar-nav">
+                    <li><a href="index.html" class="nav-link">Home</a></li>
+                    <li><a href="unified-dashboard.html" class="nav-link active">Dashboard</a></li>
+                    <li><a href="add-property.html" class="nav-link">Add Property</a></li>
+                    <li><a href="properties.html" class="nav-link">Browse Properties</a></li>
+                    <li><a href="messages.html" class="nav-link">Messages</a></li>
+                    <li><a href="notifications.html" class="nav-link">Notifications</a></li>
+                    <li><a href="login.html" class="nav-link">Login</a></li>
+                </ul>
+                <button class="mobile-menu-button">
+                    <i class="fas fa-bars"></i>
+                </button>
+            </nav>
+        </div>
     </header>
 
-    <main>
-        <section class="unified-dashboard">
-            <h1>My Dashboard</h1>
-            
-            <!-- User Info Section -->
-            <div class="user-info">
-                <h2>Welcome, <span id="user-name">User</span>!</h2>
-                <p>Account Type: <span id="user-role">Role</span></p>
+    <!-- Main Content -->
+    <main class="dashboard-main">
+        <div class="container">
+            <!-- Welcome Banner -->
+            <div class="welcome-banner">
+                <div class="welcome-content">
+                    <h1 class="welcome-title">Welcome back, Dhusinthan! 👋</h1>
+                    <p class="welcome-subtitle">Manage your properties and track your activities</p>
+                </div>
             </div>
-            
-            <!-- Dashboard Tabs -->
-            <div class="dashboard-tabs">
-                <button class="tab-active" onclick="switchTab('overview')">Overview</button>
-                <button onclick="switchTab('my-properties')">My Properties</button>
-                <button onclick="switchTab('saved-properties')">Saved Properties</button>
-                <button onclick="switchTab('messages')">Messages</button>
-                <button onclick="switchTab('settings')">Settings</button>
-            </div>
-            
-            <!-- Overview Tab -->
-            <div id="overview-tab" class="tab-content active">
-                <div class="dashboard-stats">
-                    <div class="stat-card">
-                        <h3>Total Properties</h3>
-                        <p id="total-properties">0</p>
-                        <p>Your listed properties</p>
+
+            <div class="dashboard-layout">
+                <!-- Sidebar -->
+                <aside class="dashboard-sidebar">
+                    <nav class="sidebar-nav">
+                        <ul class="nav flex-column">
+                            <li class="nav-item active">
+                                <a href="#" class="nav-link" data-target="overview">
+                                    <i class="fas fa-home"></i>
+                                    <span>Overview</span>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="#" class="nav-link" data-target="listed-properties">
+                                    <i class="fas fa-list"></i>
+                                    <span>My Properties</span>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="#" class="nav-link" data-target="saved-properties">
+                                    <i class="fas fa-heart"></i>
+                                    <span>Saved Properties</span>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="add-property.html" class="nav-link">
+                                    <i class="fas fa-plus-circle"></i>
+                                    <span>Add Property</span>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="properties.html" class="nav-link">
+                                    <i class="fas fa-search"></i>
+                                    <span>Browse Properties</span>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="messages.html" class="nav-link">
+                                    <i class="fas fa-envelope"></i>
+                                    <span>Messages</span>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="settings.html" class="nav-link">
+                                    <i class="fas fa-cog"></i>
+                                    <span>Settings</span>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="settings.html#profile" class="nav-link">
+                                    <i class="fas fa-user"></i>
+                                    <span>Profile</span>
+                                </a>
+                            </li>
+                        </ul>
+
+                        <div class="sidebar-footer">
+                            <button class="btn btn-outline w-100">
+                                <i class="fas fa-sign-out-alt"></i> Logout
+                            </button>
+                        </div>
+                    </nav>
+                </aside>
+
+                <!-- Main Content Area -->
+                <div class="dashboard-content">
+                    <!-- Overview Section -->
+                    <div id="overview-section" class="dashboard-section">
+                        <!-- Stats Cards - Simplified -->
+                        <div class="stats-grid mb-5">
+                            <div class="stat-card card">
+                                <div class="stat-icon bg-primary rounded-full p-3">
+                                    <i class="fas fa-home text-white"></i>
+                                </div>
+                                <div class="stat-content">
+                                    <div class="stat-number" id="total-properties">0</div>
+                                    <div class="stat-label">Listed Properties</div>
+                                </div>
+                            </div>
+
+                            <div class="stat-card card">
+                                <div class="stat-icon bg-warning rounded-full p-3">
+                                    <i class="fas fa-heart text-white"></i>
+                                </div>
+                                <div class="stat-content">
+                                    <div class="stat-number" id="saved-properties-count">0</div>
+                                    <div class="stat-label">Saved Properties</div>
+                                </div>
+                            </div>
+
+                            <div class="stat-card card">
+                                <div class="stat-icon bg-info rounded-full p-3">
+                                    <i class="fas fa-envelope text-white"></i>
+                                </div>
+                                <div class="stat-content">
+                                    <div class="stat-number" id="total-messages">0</div>
+                                    <div class="stat-label">Messages</div>
+                                </div>
+                            </div>
+
+                            <div class="stat-card card">
+                                <div class="stat-icon bg-success rounded-full p-3">
+                                    <i class="fas fa-rupee-sign text-white"></i>
+                                </div>
+                                <div class="stat-content">
+                                    <div class="stat-number" id="total-value">₹0</div>
+                                    <div class="stat-label">Total Value</div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                    
-                    <div class="stat-card">
-                        <h3>Saved Properties</h3>
-                        <p id="saved-properties-count">0</p>
-                        <p>Favorites & bookmarks</p>
-                    </div>
-                    
-                    <div class="stat-card">
-                        <h3>Pending Approvals</h3>
-                        <p id="pending-approvals">0</p>
-                        <p>Properties awaiting review</p>
+
+                    <!-- Saved Properties Section -->
+                    <div id="saved-properties-section" class="dashboard-section" style="display: none;">
+                        <div class="properties-section card">
+                            <div class="card-header">
+                                <h3 class="card-title">Saved Properties</h3>
+                            </div>
+                            <div class="card-body">
+                                <div class="properties-grid">
+                                    <!-- Saved property cards will be dynamically populated by JavaScript -->
+                                    <div class="no-properties-message">
+                                        <p>You haven't saved any properties yet.</p>
+                                        <a href="properties.html" class="btn btn-primary">Browse Properties</a>
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- Listed Properties Section -->
+                            <div id="listed-properties-section" class="dashboard-section" style="display: none;">
+                                <div class="properties-section">
+                                    <div class="section-header">
+                                        <h2 class="section-title">My Listed Properties</h2>
+                                        <a href="add-property.html" class="btn"><i class="fas fa-plus"></i> Add New</a>
+                                    </div>
+                                    <div id="listed-properties-container" class="properties-grid">
+                                        <!-- Listed properties will be loaded here -->
+                                        <div class="no-properties-message">
+                                            <i class="fas fa-home"></i>
+                                            <p>You haven't listed any properties yet.</p>
+                                            <a href="add-property.html" class="btn">List Your First Property</a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div id="saved-properties-section" class="dashboard-section" style="display: none;">
+                                <div class="properties-section">
+                                    <div class="section-header">
+                                        <h2 class="section-title">Saved Properties</h2>
+                                    </div>
+                                    <div id="saved-properties-container" class="properties-grid">
+                                        <!-- Saved properties will be loaded here -->
+                                        <div class="no-properties-message">
+                                            <i class="fas fa-heart"></i>
+                                            <p>You haven't saved any properties yet.</p>
+                                            <a href="properties.html" class="btn">Browse Properties</a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
-                
-                <div class="dashboard-actions">
-                    <button onclick="location.href='add-property.html'">Add New Property</button>
-                    <button onclick="location.href='properties.html'">Browse Properties</button>
-                    <button onclick="location.href='messages.html'">View Messages</button>
+    </main>
+
+    <!-- Footer -->
+    <footer>
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-column">
+                    <h3 class="footer-heading">Land Mart</h3>
+                    <p>Your trusted platform for buying and selling land properties across India.</p>
+                    <div class="social-links">
+                        <a href="#"><i class="fab fa-facebook-f"></i></a>
+                        <a href="#"><i class="fab fa-twitter"></i></a>
+                        <a href="#"><i class="fab fa-instagram"></i></a>
+                        <a href="#"><i class="fab fa-linkedin-in"></i></a>
+                    </div>
                 </div>
-                
-                <div class="recent-activity">
-                    <h2>Recent Activity</h2>
-                    <ul id="activity-list">
-                        <li>No recent activity</li>
+
+                <div class="footer-column">
+                    <h3 class="footer-heading">Quick Links</h3>
+                    <ul class="footer-links">
+                        <li><a href="index.html">Home</a></li>
+                        <li><a href="unified-dashboard.html">Dashboard</a></li>
+                        <li><a href="add-property.html">Add Property</a></li>
+                        <li><a href="properties.html">Browse Properties</a></li>
+                        <li><a href="messages.html">Messages</a></li>
+                        <li><a href="login.html">Login</a></li>
+                    </ul>
+                </div>
+
+                <div class="footer-column">
+                    <h3 class="footer-heading">Categories</h3>
+                    <ul class="footer-links">
+                        <li><a href="#">Agricultural Land</a></li>
+                        <li><a href="#">Commercial Plots</a></li>
+                        <li><a href="#">Residential Land</a></li>
+                        <li><a href="#">Industrial Land</a></li>
+                        <li><a href="#">Farm Houses</a></li>
+                    </ul>
+                </div>
+
+                <div class="footer-column">
+                    <h3 class="footer-heading">Contact Us</h3>
+                    <ul class="footer-links">
+                        <li><i class="fas fa-map-marker-alt"></i> Chennai, Tamil Nadu</li>
+                        <li><i class="fas fa-phone"></i> +91 98765 43210</li>
+                        <li><i class="fas fa-envelope"></i> info@landmart.com</li>
                     </ul>
                 </div>
             </div>
-            
-            <!-- My Properties Tab -->
-            <div id="my-properties-tab" class="tab-content">
-                <h2>My Properties</h2>
-                <div id="my-properties-container" class="properties-grid">
-                    <!-- Properties will be loaded here dynamically -->
-                </div>
-            </div>
-            
-            <!-- Saved Properties Tab -->
-            <div id="saved-properties-tab" class="tab-content">
-                <h2>Saved Properties</h2>
-                <div id="saved-properties-container" class="properties-grid">
-                    <!-- Saved properties will be loaded here dynamically -->
-                </div>
-            </div>
-            
-            <!-- Messages Tab -->
-            <div id="messages-tab" class="tab-content">
-                <h2>Messages</h2>
-                <div id="messages-container">
-                    <!-- Messages will be loaded here dynamically -->
-                </div>
-            </div>
-            
-            <!-- Settings Tab -->
-            <div id="settings-tab" class="tab-content">
-                <h2>User Settings</h2>
-                <div class="settings-content">
-                    <div id="profile" class="settings-section">
-                        <h3>Profile Information</h3>
-                        <form id="profile-form">
-                            <div class="form-group">
-                                <label for="settings-full-name">Full Name</label>
-                                <input type="text" id="settings-full-name" name="full-name" placeholder="Enter your full name">
-                            </div>
-                            
-                            <div class="form-group">
-                                <label for="settings-email">Email Address</label>
-                                <input type="email" id="settings-email" name="email" placeholder="Enter your email">
-                            </div>
-                            
-                            <div class="form-group">
-                                <label for="settings-phone">Phone Number</label>
-                                <input type="tel" id="settings-phone" name="phone" placeholder="Enter your phone number">
-                            </div>
-                            
-                            <div class="form-group">
-                                <label for="settings-bio">Bio</label>
-                                <textarea id="settings-bio" name="bio" rows="4" placeholder="Tell us about yourself..."></textarea>
-                            </div>
-                            
-                            <button type="submit" class="btn-primary">Save Changes</button>
-                        </form>
-                    </div>
-                </div>
-            </div>
-        </section>
-    </main>
 
-    <footer>
-        <p>&copy; 2025 Land Mart. All rights reserved.</p>
+            <div class="copyright">
+                <p>&copy; 2025 Land Mart. All rights reserved.</p>
+                <div class="legal-links">
+                    <a href="#">Privacy Policy</a> |
+                    <a href="#">Terms of Service</a> |
+                    <a href="#">Cookie Policy</a>
+                </div>
+            </div>
+        </div>
     </footer>
 
     <script src="js/main.js"></script>
+    <script>
+        // Mobile menu toggle
+        document.addEventListener('DOMContentLoaded', function () {
+            const mobileMenuButton = document.querySelector('.mobile-menu-button');
+            const navbarNav = document.querySelector('.navbar-nav');
+
+            if (mobileMenuButton && navbarNav) {
+                mobileMenuButton.addEventListener('click', function () {
+                    navbarNav.classList.toggle('show');
+                });
+            }
+
+            // Sidebar navigation
+            const navLinks = document.querySelectorAll('.sidebar-nav .nav-link');
+            navLinks.forEach(link => {
+                link.addEventListener('click', function (e) {
+                    // Check if this is an internal tab link (has data-target)
+                    const target = this.getAttribute('data-target');
+
+                    if (target) {
+                        // Prevent default only for internal tabs
+                        e.preventDefault();
+
+                        // Remove active class from all links
+                        navLinks.forEach(l => l.parentElement.classList.remove('active'));
+
+                        // Add active class to clicked link
+                        this.parentElement.classList.add('active');
+
+                        // Hide all sections
+                        document.querySelectorAll('.dashboard-section').forEach(section => {
+                            section.style.display = 'none';
+                        });
+
+                        // Show the targeted section
+                        const targetSection = document.getElementById(`${target}-section`);
+                        if (targetSection) {
+                            targetSection.style.display = 'block';
+
+                            // Load content based on the section
+                            if (target === 'listed-properties') {
+                                // Load user's properties
+                                loadMyProperties();
+                            } else if (target === 'saved-properties') {
+                                // Load saved properties
+                                loadSavedProperties();
+                            }
+                        }
+                    }
+                    // For external links (Messages, Settings, Profile), let them navigate normally
+                });
+            });
+
+            // Show overview section by default
+            const overviewSection = document.getElementById('overview-section');
+            if (overviewSection) {
+                overviewSection.style.display = 'block';
+            }
+        });
+    </script>
 </body>
+
 </html>

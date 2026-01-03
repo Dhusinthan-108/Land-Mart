@@ -2,19 +2,20 @@ const mongoose = require('mongoose');
 
 // Define the Message schema
 const messageSchema = new mongoose.Schema({
+    conversationId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Conversation',
+        required: true
+    },
     senderId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User',
         required: true
     },
-    receiverId: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'User',
+    senderRole: {
+        type: String,
+        enum: ['buyer', 'seller'],
         required: true
-    },
-    propertyId: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'Property'
     },
     content: {
         type: String,
