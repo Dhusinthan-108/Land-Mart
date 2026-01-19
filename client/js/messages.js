@@ -15,8 +15,13 @@ function getAuthHeaders() {
 }
 
 // Global state
+// Global state
 let currentConversationId = null;
 let allConversations = [];
+let pollingInterval = null;
+let conversationPollingListInterval = null;
+let displayedMessageIds = new Set();
+let displayedConversationIds = new Set();
 
 // Initialize messages page
 document.addEventListener('DOMContentLoaded', async function () {
@@ -29,6 +34,20 @@ document.addEventListener('DOMContentLoaded', async function () {
 
     // Load all conversations first
     await loadConversations();
+    startPolling();
+
+    // Setup Mobile Back Button
+    const backButton = document.getElementById('back-to-list-btn');
+    if (backButton) {
+        backButton.addEventListener('click', () => {
+            document.querySelector('.messages-layout').classList.remove('mobile-chat-active');
+            currentConversationId = null;
+            document.getElementById('chat-header').style.display = 'none';
+            document.getElementById('message-input-container').style.display = 'none';
+            document.getElementById('messages-container').innerHTML = '<div class="empty-chat"><i class="fas fa-comments"></i><h2>Your Messages</h2><p>Select a conversation from the sidebar to start chatting.</p></div>';
+            displayedMessageIds.clear();
+        });
+    }
 
     // Parse URL parameters
     const urlParams = new URLSearchParams(window.location.search);
@@ -54,8 +73,8 @@ document.addEventListener('DOMContentLoaded', async function () {
             // Show start chat UI? Or just start it
             await startNewConversation(userIdParam, propertyIdParam);
         }
-    } else if (allConversations.length > 0) {
-        // Load the first interaction by default if no params
+    } else if (allConversations.length > 0 && window.innerWidth > 768) {
+        // Load the first interaction by default if no params AND desktop
         await loadConversation(allConversations[0]._id);
     }
 
@@ -68,7 +87,7 @@ document.addEventListener('DOMContentLoaded', async function () {
     // Add event listener for Enter key in textarea
     const messageTextarea = document.getElementById('message-textarea');
     if (messageTextarea) {
-        messageTextarea.addEventListener('keypress', function (e) {
+        messageTextarea.addEventListener('keydown', function (e) {
             if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
                 sendMessage();
@@ -81,12 +100,18 @@ document.addEventListener('DOMContentLoaded', async function () {
     if (searchInput) {
         searchInput.addEventListener('input', function (e) {
             const searchTerm = e.target.value.toLowerCase();
-            const filtered = allConversations.filter(conv =>
-                conv.propertyId.title.toLowerCase().includes(searchTerm) ||
-                (conv.buyerId.name.toLowerCase().includes(searchTerm) || conv.sellerId.name.toLowerCase().includes(searchTerm)) ||
-                conv.lastMessage.toLowerCase().includes(searchTerm)
-            );
-            displayConversations(filtered);
+            // Filter locally first for immediate feedback
+            const container = document.getElementById('conversations-container');
+            const items = container.querySelectorAll('.conversation-item');
+
+            items.forEach(item => {
+                const text = item.innerText.toLowerCase();
+                if (text.includes(searchTerm)) {
+                    item.style.display = 'flex';
+                } else {
+                    item.style.display = 'none';
+                }
+            });
         });
     }
 });
@@ -128,24 +153,23 @@ function displayConversations(conversations) {
         return;
     }
 
-    container.innerHTML = '';
+    // If first load (empty), clear loading message
+    if (container.querySelector('.text-center')) {
+        container.innerHTML = '';
+    }
 
     conversations.forEach(conversation => {
-        const conversationElement = document.createElement('div');
-        conversationElement.className = 'conversation-item';
-        if (currentConversationId === conversation._id) {
-            conversationElement.classList.add('active');
-        }
-
-        // Determine who the "other" person is
+        // Check if element already exists to avoid flicker
+        let conversationElement = document.getElementById(`conv-${conversation._id}`);
         const isBuyer = currentUser.id === conversation.buyerId._id;
         const otherUser = isBuyer ? conversation.sellerId : conversation.buyerId;
         const property = conversation.propertyId;
-
         const initials = getInitials(otherUser.name);
         const timeStr = formatTimeAgo(new Date(conversation.updatedAt));
+        const lastMsg = conversation.lastMessage || 'No messages yet';
 
-        conversationElement.innerHTML = `
+        // Content HTML
+        const contentHTML = `
             <div class="user-avatar">${initials}</div>
             <div class="conversation-info">
                 <div class="conversation-top">
@@ -155,19 +179,47 @@ function displayConversations(conversations) {
                 <div class="conversation-preview">
                     <div style="display: flex; flex-direction: column; gap: 2px;">
                         <p class="other-user-name">${otherUser.name} (${otherUser.role})</p>
-                        <p class="last-msg-text">${conversation.lastMessage || 'No messages yet'}</p>
+                        <p class="last-msg-text">${lastMsg}</p>
                     </div>
                 </div>
             </div>
         `;
 
-        conversationElement.addEventListener('click', () => {
-            document.querySelectorAll('.conversation-item').forEach(el => el.classList.remove('active'));
-            conversationElement.classList.add('active');
-            loadConversation(conversation._id);
-        });
+        if (!conversationElement) {
+            conversationElement = document.createElement('div');
+            conversationElement.id = `conv-${conversation._id}`;
+            conversationElement.className = 'conversation-item';
+            if (currentConversationId === conversation._id) {
+                conversationElement.classList.add('active');
+            }
+            conversationElement.innerHTML = contentHTML;
+            conversationElement.addEventListener('click', () => {
+                document.querySelectorAll('.conversation-item').forEach(el => el.classList.remove('active'));
+                conversationElement.classList.add('active');
+                loadConversation(conversation._id);
+            });
+            container.appendChild(conversationElement);
+        } else {
+            // Update existing content if changed
+            if (conversationElement.innerHTML !== contentHTML) {
+                // Only update specific parts if possible, but innerHTML is okay for now as it's small
+                const oldTime = conversationElement.querySelector('.conversation-time').innerText;
+                const oldMsg = conversationElement.querySelector('.last-msg-text').innerText;
 
-        container.appendChild(conversationElement);
+                if (oldTime !== timeStr || oldMsg !== lastMsg) {
+                    conversationElement.querySelector('.conversation-time').innerText = timeStr;
+                    conversationElement.querySelector('.last-msg-text').innerText = lastMsg;
+                    // Move to top if new message?
+                    container.prepend(conversationElement);
+                }
+            }
+            // Ensure active state
+            if (currentConversationId === conversation._id) {
+                conversationElement.classList.add('active');
+            } else {
+                conversationElement.classList.remove('active');
+            }
+        }
     });
 }
 
@@ -207,6 +259,13 @@ async function loadConversation(conversationId) {
         document.getElementById('chat-header').style.display = 'flex';
         document.getElementById('message-input-container').style.display = 'block';
 
+        // Reset displayed IDs if switching
+        if (currentConversationId !== conversationId) {
+            displayedMessageIds.clear();
+            const container = document.getElementById('messages-container');
+            container.innerHTML = ''; // Clear old messages immediately
+        }
+
         const response = await fetch(`${API_CONFIG.BASE_URL}/api/messages/conversation/${conversationId}`, {
             method: 'GET',
             headers: getAuthHeaders()
@@ -233,6 +292,13 @@ async function loadConversation(conversationId) {
         propertyContext.style.display = 'flex';
         propertyBadge.textContent = `${otherUser.name} (${otherUser.role})`;
 
+        // Mobile view adjustment
+        document.querySelector('.messages-layout').classList.add('mobile-chat-active');
+
+        // Show Back button if mobile
+        const backBtn = document.getElementById('back-to-list-btn');
+        if (backBtn) backBtn.style.display = 'block';
+
         displayMessages(messages);
 
         // Mark as read
@@ -249,33 +315,89 @@ async function loadConversation(conversationId) {
 // Display messages with date separation
 function displayMessages(messages) {
     const container = document.getElementById('messages-container');
-    container.innerHTML = '';
+
+    // Check if we are starting fresh (switched conversation)
+    // If we have messages but displayedMessageIds is empty, it means we switched or first load
+    // But we need to handle "Append" case vs "Replace" case. 
+    // Usually loadConversation calls this with ALL messages.
+    // So we can check if the first message ID matches.
+
+    // Simplification: For now, we will clear only if the conversation changed (logic in loadConversation or here).
+    // Actually, displayedMessageIds should be cleared when switching conversation.
 
     if (messages.length === 0) {
         container.innerHTML = '<div class="empty-chat"><i class="fas fa-comment-dots"></i><p>No messages yet. Say hello!</p></div>';
+        displayedMessageIds.clear();
         return;
+    }
+
+    // If container has empty-chat, clear it
+    if (container.querySelector('.empty-chat')) {
+        container.innerHTML = '';
+        displayedMessageIds.clear();
     }
 
     const currentUser = JSON.parse(localStorage.getItem('currentUser'));
     let lastDate = null;
+    let shouldScroll = false;
+
+    // Filter for new messages only
+    const newMessages = messages.filter(m => !displayedMessageIds.has(m._id));
+
+    if (newMessages.length > 0) {
+        shouldScroll = true; // New messages arrived
+    }
+
+    // Note: This logic assumes messages are sorted effectively.
+    // If we are appending, we need to know the last date separator in the DOM.
+    // This is getting complex for a simple tool.
+    // Fallback: If too many new messages (initial load), clear and render all.
+    if (messages.length > displayedMessageIds.size + newMessages.length) {
+        // This means we missed some or switched context completely. Clear.
+        container.innerHTML = '';
+        displayedMessageIds.clear();
+        shouldScroll = true;
+    }
 
     messages.forEach(message => {
+        if (displayedMessageIds.has(message._id)) return; // Skip if already shown
+
         const date = new Date(message.createdAt);
         const dateLabel = date.toLocaleDateString();
 
-        if (dateLabel !== lastDate) {
+        // Check if we need a date divider (this is tricky when appending, need to check last element in DOM)
+        const lastElement = container.lastElementChild;
+        let needsDivider = true;
+
+        if (lastElement && lastElement.classList.contains('message')) {
+            // Check date of previous message? Hard to look up.
+            // Simplified: If it's a new batch, just try to match strict date.
+            // If dateLabel matches the stored "lastDate" (which we lost context of), it's hard.
+            // Correct approach: Look at the last .date-divider in container
+            const dividers = container.querySelectorAll('.date-divider');
+            if (dividers.length > 0) {
+                const lastDividerText = dividers[dividers.length - 1].innerText;
+                if (lastDividerText === getFriendlyDate(date)) {
+                    needsDivider = false;
+                }
+            }
+        }
+
+        if (needsDivider) {
             const divider = document.createElement('div');
             divider.className = 'date-divider';
             divider.innerHTML = `<span>${getFriendlyDate(date)}</span>`;
             container.appendChild(divider);
-            lastDate = dateLabel;
         }
 
         const isSent = (message.senderId._id || message.senderId) === currentUser.id;
         addMessageElement(message, isSent);
+        displayedMessageIds.add(message._id);
     });
 
-    container.scrollTop = container.scrollHeight;
+    if (shouldScroll) {
+        container.scrollTop = container.scrollHeight;
+    }
 }
 
 function getFriendlyDate(date) {
@@ -363,3 +485,38 @@ function formatTimeAgo(date) {
     if (diffHours < 24) return `${diffHours}h`;
     return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
 }
+
+function startPolling() {
+    if (pollingInterval) clearInterval(pollingInterval);
+    if (conversationPollingListInterval) clearInterval(conversationPollingListInterval);
+
+    // Poll active conversation every 3 seconds
+    pollingInterval = setInterval(async () => {
+        if (currentConversationId) {
+            // Silent fetch
+            try {
+                const response = await fetch(`${API_CONFIG.BASE_URL}/api/messages/conversation/${currentConversationId}`, {
+                    method: 'GET',
+                    headers: getAuthHeaders()
+                });
+                if (response.ok) {
+                    const { conversation, messages } = await response.json();
+                    displayMessages(messages); // Smart append
+                    // Update Last Message in list?
+                    // We can rely on list polling for that
+                }
+            } catch (e) { console.error('Polling error', e); }
+        }
+    }, 3000);
+
+    // Poll list every 10 seconds
+    conversationPollingListInterval = setInterval(() => {
+        loadConversations();
+    }, 10000);
+}
+
+// Ensure clean up on page unload (optional but good practice)
+window.addEventListener('beforeunload', () => {
+    if (pollingInterval) clearInterval(pollingInterval);
+    if (conversationPollingListInterval) clearInterval(conversationPollingListInterval);
+});

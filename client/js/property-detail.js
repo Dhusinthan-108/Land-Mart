@@ -78,11 +78,11 @@ function displayPropertyDetails(property) {
         <li><i class="fas fa-ruler-combined"></i> Size: ${formattedSize} sq.ft</li>
         <li><i class="fas fa-mountain"></i> Terrain: ${property.terrain.replace('_', ' ')}</li>
         <li><i class="fas fa-file-contract"></i> Status: ${property.status.replace('_', ' ')}</li>
-        <li><i class="fas fa-user"></i> Owner: ${property.ownerId.name}</li>
+        <li><i class="fas fa-user"></i> Owner: ${property.ownerId ? property.ownerId.name : 'Unknown Owner'}</li>
     `;
 
     // Update seller info
-    document.querySelector('.seller-name').textContent = property.ownerId.name;
+    document.querySelector('.seller-name').textContent = property.ownerId ? property.ownerId.name : 'Unknown Owner';
 
     // Update image gallery if available
     if (property.images && property.images.length > 0) {
@@ -184,7 +184,7 @@ function addOwnerActions(property) {
     const currentUser = JSON.parse(localStorage.getItem('currentUser'));
 
     // Check if current user is the owner
-    if (currentUser && property.ownerId._id === currentUser.id) {
+    if (currentUser && property.ownerId && property.ownerId._id === currentUser.id) {
         // Add edit and delete buttons for owners
         const contactSellerCard = document.querySelector('.contact-seller-card');
 

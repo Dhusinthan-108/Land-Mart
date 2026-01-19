@@ -31,6 +31,7 @@ const API_CONFIG = {
         GET_MESSAGES: '/api/messages/conversations',
         SEND_MESSAGE: '/api/messages',
         GET_CONVERSATION_MESSAGES: '/api/messages/conversation/:conversationId',
+        GET_CONVERSATION: '/api/messages/conversation/:userId',
         CONVERSATIONS: '/api/messages/conversations',
 
         // App settings
