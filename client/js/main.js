@@ -122,13 +122,21 @@ async function updateNotificationBadge() {
         const currentUser = JSON.parse(localStorage.getItem('currentUser'));
         if (!currentUser) return;
 
-        const url = getApiUrl(API_CONFIG.ENDPOINTS.GET_CONVERSATION, { userId: currentUser.id });
+        // Use the correct endpoint for conversations
+        // Note: The backend currently doesn't support an efficient unread count, 
+        // using the conversations endpoint to at least verify connectivity without 404s.
+        const url = getApiUrl(API_CONFIG.ENDPOINTS.CONVERSATIONS);
         const response = await fetch(url, {
             headers: getAuthHeaders()
         });
 
         if (response.ok) {
-            const messages = await response.json();
+            const conversations = await response.json();
+            // We cannot filtering unread messages from conversation objects easily.
+            // So we will just silence the error and maybe show total conversations if we wanted.
+            // For now, removing badge logic to prevent misleading info.
+
+            /* 
             const unreadCount = messages.filter(m => !m.isRead && m.receiverId._id === currentUser.id).length;
 
             // Find or create badge in navbar
@@ -153,6 +161,7 @@ async function updateNotificationBadge() {
                     badge.remove();
                 }
             }
+            */
         }
     } catch (error) {
         console.error('Error updating notification badge:', error);
@@ -728,7 +737,7 @@ async function loadMessages() {
         if (!container) return;
 
         // Determine the correct API base URL
-        const url = `${API_CONFIG.BASE_URL}/api/messages/conversation/${currentUser.id}`;
+        const url = getApiUrl(API_CONFIG.ENDPOINTS.CONVERSATIONS);
 
         console.log('Fetching messages from:', url);
 
@@ -744,62 +753,24 @@ async function loadMessages() {
             throw new Error(`Failed to load messages. Status: ${response.status}`);
         }
 
-        const messages = await response.json();
-        console.log('Received messages:', messages);
-
-        // Group messages by conversation partner
-        const conversations = {};
-        messages.forEach(message => {
-            // Determine the other user in the conversation
-            const otherUserId = message.senderId._id === currentUser.id ? message.receiverId._id : message.senderId._id;
-            const otherUserName = message.senderId._id === currentUser.id ? message.receiverId.name : message.senderId.name;
-
-            // Create conversation key
-            const conversationKey = otherUserId;
-
-            // Initialize conversation if not exists
-            if (!conversations[conversationKey]) {
-                conversations[conversationKey] = {
-                    userId: otherUserId,
-                    userName: otherUserName,
-                    messages: [],
-                    lastMessage: null,
-                    lastMessageTime: null,
-                    propertyId: null,
-                    propertyName: null
-                };
-            }
-
-            // Add message to conversation
-            conversations[conversationKey].messages.push(message);
-
-            // Update last message if this is newer
-            if (!conversations[conversationKey].lastMessageTime ||
-                new Date(message.createdAt) > new Date(conversations[conversationKey].lastMessageTime)) {
-                conversations[conversationKey].lastMessage = message.content;
-                conversations[conversationKey].lastMessageTime = message.createdAt;
-                if (message.propertyId) {
-                    conversations[conversationKey].propertyId = message.propertyId._id;
-                    conversations[conversationKey].propertyName = message.propertyId.title;
-                }
-            }
-        });
-
-        // Convert to array and sort by last message time
-        const conversationList = Object.values(conversations).sort((a, b) =>
-            new Date(b.lastMessageTime) - new Date(a.lastMessageTime)
-        );
+        const conversations = await response.json();
+        console.log('Received conversations:', conversations);
 
         // Display conversations
-        if (conversationList.length === 0) {
+        if (conversations.length === 0) {
             container.innerHTML = '<p>You have no messages yet. Contact other users to start a conversation.</p>';
         } else {
             let html = '<div class="conversations-list">';
             html += '<h3>Your Conversations</h3>';
 
-            conversationList.forEach(conversation => {
+            conversations.forEach(conversation => {
+                // Determine the other user in the conversation
+                const otherUserId = conversation.buyerId._id === currentUser.id ? conversation.sellerId._id : conversation.buyerId._id;
+                const otherUserName = conversation.buyerId._id === currentUser.id ? conversation.sellerId.name : conversation.buyerId.name;
+                const otherUserRole = conversation.buyerId._id === currentUser.id ? conversation.sellerId.role : conversation.buyerId.role; // Optional
+
                 // Format last message time
-                const lastMessageDate = new Date(conversation.lastMessageTime);
+                const lastMessageDate = new Date(conversation.updatedAt); // Use conversation updated time
                 const now = new Date();
                 const timeDiffMinutes = Math.floor((now - lastMessageDate) / (1000 * 60));
                 const timeDiffHours = Math.floor(timeDiffMinutes / 60);
@@ -819,19 +790,20 @@ async function loadMessages() {
                 }
 
                 // Truncate last message
-                const truncatedMessage = conversation.lastMessage.length > 50 ?
-                    conversation.lastMessage.substring(0, 50) + '...' :
-                    conversation.lastMessage;
+                const lastMsgContent = conversation.lastMessage || 'No messages yet';
+                const truncatedMessage = lastMsgContent.length > 50 ?
+                    lastMsgContent.substring(0, 50) + '...' :
+                    lastMsgContent;
 
                 html += `
                     <div class="conversation-item">
                         <div class="conversation-header">
-                            <h4>${conversation.userName}</h4>
+                            <h4>${otherUserName}</h4>
                             <span class="time">${timeText}</span>
                         </div>
                         <p class="last-message">${truncatedMessage}</p>
-                        ${conversation.propertyName ? `<p class="property-name">Regarding: ${conversation.propertyName}</p>` : ''}
-                        <button class="btn-secondary" onclick="openConversation('${conversation.userId}', '${conversation.propertyId || ''}')">View Conversation</button>
+                        ${conversation.propertyId ? `<p class="property-name">Regarding: ${conversation.propertyId.title}</p>` : ''}
+                        <button class="btn-secondary" onclick="openConversation('${conversation._id}')">View Conversation</button>
                     </div>
                 `;
             });
@@ -2175,7 +2147,15 @@ async function handleLogin() {
             window.location.href = 'unified-dashboard.html';
         } else {
             console.log('Login failed with message:', result.message);
-            showNotification('Login failed: ' + (result.message || 'Invalid credentials'), false);
+            // Display error in the login form error container
+            const errorContainer = document.getElementById('login-error');
+            if (errorContainer) {
+                errorContainer.textContent = result.message || 'Invalid email or password';
+                errorContainer.style.display = 'block';
+            } else {
+                // Fallback to notification
+                showNotification('Login failed: ' + (result.message || 'Invalid email or password'), false);
+            }
         }
     } catch (error) {
         console.error('Login error:', error);
