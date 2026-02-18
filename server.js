@@ -2,9 +2,52 @@ const express = require('express');
 const path = require('path');
 const mongoose = require('mongoose');
 const cors = require('cors');
+const http = require('http');
+const { Server } = require('socket.io');
 require('dotenv').config(); // Load environment variables
+
 const app = express();
+const server = http.createServer(app);
 const PORT = process.env.PORT || 5503;
+
+// Socket.io setup
+const io = new Server(server, {
+  cors: {
+    origin: "*", // Allow all origins for now (adjust for production)
+    methods: ["GET", "POST", "PUT", "DELETE"],
+    credentials: true
+  }
+});
+
+// Attach io to app so routes can access it
+app.set('io', io);
+
+// Socket.io logic
+io.on('connection', (socket) => {
+  console.log('New client connected:', socket.id);
+
+  // Join a conversation room
+  socket.on('join_conversation', (conversationId) => {
+    socket.join(conversationId);
+    console.log(`Client ${socket.id} joined conversation: ${conversationId}`);
+  });
+
+  // Join a personal user room for global notifications
+  socket.on('join_user', (userId) => {
+    socket.join(userId);
+    console.log(`Client ${socket.id} joined user room: ${userId}`);
+  });
+
+  // Leave a conversation room
+  socket.on('leave_conversation', (conversationId) => {
+    socket.leave(conversationId);
+    console.log(`Client ${socket.id} left conversation: ${conversationId}`);
+  });
+
+  socket.on('disconnect', () => {
+    console.log('Client disconnected:', socket.id);
+  });
+});
 
 // Import routes
 const propertyRoutes = require('./routes/properties');
@@ -12,6 +55,7 @@ const userRoutes = require('./routes/users');
 const messageRoutes = require('./routes/messages');
 const appSettingsRoutes = require('./routes/appSettings');
 const transactionRoutes = require('./routes/transactions'); // Add transaction routes
+const documentRoutes = require('./routes/documents'); // Add document routes
 
 console.log('Routes imported successfully');
 console.log('User routes type:', typeof userRoutes);
@@ -36,7 +80,8 @@ app.options('*', cors(corsOptions));
 
 // Debugging middleware to log all requests
 app.use((req, res, next) => {
-  console.log(`Incoming request: ${req.method} ${req.url}`);
+  const timestamp = new Date().toISOString();
+  console.log(`[${timestamp}] ${req.method} ${req.url}`);
   next();
 });
 
@@ -62,17 +107,37 @@ app.options('/api/users/login', cors(corsOptions));
 console.log('Mounting API routes...');
 app.use('/api/properties', propertyRoutes);
 app.use('/api/users', userRoutes);
-console.log('User routes mounted');
 app.use('/api/messages', messageRoutes);
+console.log('User routes mounted');
 app.use('/api/app-settings', appSettingsRoutes);
 app.use('/api/transactions', transactionRoutes); // Mount transaction routes
+app.use('/api/documents', documentRoutes); // Mount document routes
 
-// Serve static files (placed after API routes but before catch-all)
+// Serve static files
+// 1. Serve from root for shorter URLs (e.g., /index.html)
 app.use(express.static(path.join(__dirname, 'client')));
+// 2. Also serve with /client prefix for requests that include it (as seen in user screenshot)
+app.use('/client', express.static(path.join(__dirname, 'client')));
 
 // Catch-all route for SPA (must be last)
 app.get('*', (req, res) => {
-  console.log(`Catch-all route hit: ${req.method} ${req.url}`);
+  // 1. Prevent CORB on API calls by returning JSON for missing routes
+  if (req.path.startsWith('/api/')) {
+    console.log(`API 404: ${req.method} ${req.path}`);
+    return res.status(404).json({
+      error: 'Not Found',
+      message: `API endpoint ${req.path} does not exist`,
+      help: 'Check your API_CONFIG or route definitions'
+    });
+  }
+
+  // 2. Prevent CORB on static assets (CSS, JS, etc.)
+  if (req.path.includes('.') && !req.path.endsWith('.html')) {
+    console.log(`Asset 404: ${req.method} ${req.path}`);
+    return res.status(404).send('Not Found');
+  }
+
+  console.log(`Catch-all route: serving index.html for ${req.url}`);
   res.sendFile(path.join(__dirname, 'client', 'index.html'));
 });
 
@@ -119,7 +184,7 @@ mongoose.connect(mongoURI)
   });
 
 // Start server
-app.listen(PORT, () => {
+server.listen(PORT, () => {
   console.log(`Land Mart server running on port ${PORT}`);
   console.log(`Frontend should access APIs at the current origin`);
 });

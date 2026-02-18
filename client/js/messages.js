@@ -1,93 +1,588 @@
-// Messages functionality - Updated for Conversation-based messaging
+/**
+ * ============================================================================
+ * LAND MART - SELLER-BUYER MESSAGING SYSTEM
+ * ============================================================================
+ * Proper messaging function for communication between sellers and buyers
+ * 
+ * Features:
+ * - Clear seller/buyer role identification
+ * - Real-time message delivery
+ * - Read receipts
+ * - Property context in conversations
+ * - Simple, reliable communication
+ */
 
-// Utility function to get authorization headers
-function getAuthHeaders() {
-    const currentUser = JSON.parse(localStorage.getItem('currentUser'));
-    const headers = {
-        'Content-Type': 'application/json'
-    };
+// ============================================================================
+// STATE
+// ============================================================================
 
-    if (currentUser && currentUser.token) {
-        headers['Authorization'] = `Bearer ${currentUser.token}`;
-    }
+const MessagingApp = {
+    currentUser: null,
+    socket: null,
+    activeConversation: null,
+    conversations: [],
+    messages: []
+};
 
-    return headers;
-}
+// ============================================================================
+// INITIALIZATION
+// ============================================================================
 
-// Global state
-// Global state
-let currentConversationId = null;
-let allConversations = [];
-let pollingInterval = null;
-let conversationPollingListInterval = null;
-let displayedMessageIds = new Set();
-let displayedConversationIds = new Set();
+document.addEventListener('DOMContentLoaded', () => {
+    console.log('[Messaging] Initializing...');
 
-// Initialize messages page
-document.addEventListener('DOMContentLoaded', async function () {
-    // Check if user is logged in
-    const currentUser = JSON.parse(localStorage.getItem('currentUser'));
-    if (!currentUser) {
+    // Check authentication
+    const user = JSON.parse(localStorage.getItem('currentUser'));
+    if (!user || !user.token) {
+        console.log('[Messaging] User not authenticated, redirecting...');
         window.location.href = 'login.html';
         return;
     }
 
-    // Load all conversations first
-    await loadConversations();
-    startPolling();
+    MessagingApp.currentUser = user;
+    console.log('[Messaging] User:', user.name, '| Role:', user.role, '| ID:', user.id);
 
-    // Setup Mobile Back Button
-    const backButton = document.getElementById('back-to-list-btn');
-    if (backButton) {
-        backButton.addEventListener('click', () => {
-            document.querySelector('.messages-layout').classList.remove('mobile-chat-active');
-            currentConversationId = null;
-            document.getElementById('chat-header').style.display = 'none';
-            document.getElementById('message-input-container').style.display = 'none';
-            document.getElementById('messages-container').innerHTML = '<div class="empty-chat"><i class="fas fa-comments"></i><h2>Your Messages</h2><p>Select a conversation from the sidebar to start chatting.</p></div>';
-            displayedMessageIds.clear();
+    // Initialize Socket.io
+    initializeSocket();
+
+    // Load conversations
+    loadConversations();
+
+    // Setup event listeners
+    setupEventListeners();
+
+    // Handle URL parameters (deep linking)
+    handleURLParameters();
+});
+
+// ============================================================================
+// SOCKET.IO - REAL-TIME COMMUNICATION
+// ============================================================================
+
+function initializeSocket() {
+    if (typeof io === 'undefined') {
+        console.warn('[Socket] Socket.io not available');
+        return;
+    }
+
+    MessagingApp.socket = io();
+
+    MessagingApp.socket.on('connect', () => {
+        console.log('[Socket] Connected:', MessagingApp.socket.id);
+
+        // Join personal room
+        MessagingApp.socket.emit('join_user', MessagingApp.currentUser.id);
+        console.log('[Socket] Joined user room:', MessagingApp.currentUser.id);
+
+        updateConnectionStatus(true);
+    });
+
+    MessagingApp.socket.on('disconnect', () => {
+        console.log('[Socket] Disconnected');
+        updateConnectionStatus(false);
+    });
+
+    // Listen for new messages
+    MessagingApp.socket.on('receive_message', (message) => {
+        console.log('[Socket] New message received:', message._id);
+        handleIncomingMessage(message);
+    });
+
+    // Listen for read receipts
+    MessagingApp.socket.on('messages_read', ({ conversationId }) => {
+        console.log('[Socket] Messages read:', conversationId);
+        handleMessagesRead(conversationId);
+    });
+}
+
+function updateConnectionStatus(isConnected) {
+    const status = document.querySelector('.connection-status');
+    if (status) {
+        status.textContent = isConnected ? '● Online' : '○ Offline';
+        status.style.color = isConnected ? '#10b981' : '#ef4444';
+    }
+}
+
+// ============================================================================
+// LOAD CONVERSATIONS
+// ============================================================================
+
+async function loadConversations() {
+    try {
+        showLoading('Loading conversations...');
+
+        const url = getApiUrl(API_CONFIG.ENDPOINTS.GET_CONVERSATIONS);
+        const response = await fetch(url, {
+            headers: getAuthHeaders()
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to load conversations');
+        }
+
+        const conversations = await response.json();
+        MessagingApp.conversations = conversations;
+
+        console.log('[Conversations] Loaded:', conversations.length);
+        displayConversations(conversations);
+
+    } catch (error) {
+        console.error('[Conversations] Error:', error);
+        showError('conversations-list', 'Failed to load conversations');
+    } finally {
+        hideLoading();
+    }
+}
+
+function displayConversations(conversations) {
+    const container = document.getElementById('conversations-list');
+
+    if (!conversations || conversations.length === 0) {
+        container.innerHTML = `
+            <div class="empty-state">
+                <i class="fas fa-inbox"></i>
+                <h3>No Conversations</h3>
+                <p>Start chatting about properties!</p>
+            </div>
+        `;
+        return;
+    }
+
+    container.innerHTML = '';
+
+    conversations.forEach(conv => {
+        const card = createConversationCard(conv);
+        container.appendChild(card);
+    });
+}
+
+function createConversationCard(conversation) {
+    const card = document.createElement('div');
+    card.className = 'conversation-card';
+    card.dataset.id = conversation._id;
+
+    // Determine the other participant (seller or buyer)
+    const otherUser = getOtherParticipant(conversation);
+    const avatarColor = getAvatarColor(otherUser.name);
+    const initials = getInitials(otherUser.name);
+    const timeStr = formatTime(conversation.updatedAt);
+
+    // Determine role
+    const role = otherUser.role || 'user';
+    const roleClass = role === 'seller' ? 'seller' : 'buyer';
+
+    // Check if active
+    if (MessagingApp.activeConversation && MessagingApp.activeConversation._id === conversation._id) {
+        card.classList.add('active');
+    }
+
+    card.innerHTML = `
+        <div class="conversation-avatar" style="background: ${avatarColor}">${initials}</div>
+        <div class="conversation-info">
+            <div class="conversation-header">
+                <h4 class="conversation-name">
+                    ${escapeHtml(otherUser.name || 'Unknown')}
+                    <span class="role-badge ${roleClass}">${role}</span>
+                </h4>
+                <span class="conversation-time">${timeStr}</span>
+            </div>
+            <div class="conversation-preview">
+                <p class="last-message">
+                    ${conversation.lastSenderId === MessagingApp.currentUser.id ?
+            '<i class="fas fa-check"></i> ' : ''}
+                    ${escapeHtml(conversation.lastMessage || 'No messages yet')}
+                </p>
+                ${conversation.unreadCount > 0 ?
+            `<span class="unread-count">${conversation.unreadCount}</span>` : ''}
+            </div>
+        </div>
+    `;
+
+    card.addEventListener('click', () => openConversation(conversation));
+
+    return card;
+}
+
+// ============================================================================
+// OPEN CONVERSATION
+// ============================================================================
+
+async function openConversation(conversation) {
+    console.log('[Conversation] Opening:', conversation._id);
+
+    // Leave previous room
+    if (MessagingApp.activeConversation && MessagingApp.socket) {
+        MessagingApp.socket.emit('leave_conversation', MessagingApp.activeConversation._id);
+    }
+
+    // Update state
+    MessagingApp.activeConversation = conversation;
+    MessagingApp.messages = [];
+
+    // Join new room
+    if (MessagingApp.socket) {
+        MessagingApp.socket.emit('join_conversation', conversation._id);
+    }
+
+    // Update UI
+    updateActiveConversationUI();
+    renderChatHeader(conversation);
+    showChatPanel();
+
+    // Load messages
+    await loadMessages(conversation._id);
+
+    // Mark as read
+    markAsRead(conversation._id);
+}
+
+function renderChatHeader(conversation) {
+    const header = document.getElementById('chat-header');
+    const otherUser = getOtherParticipant(conversation);
+    const avatarColor = getAvatarColor(otherUser.name);
+    const initials = getInitials(otherUser.name);
+    const property = conversation.propertyId || {};
+    const role = otherUser.role || 'user';
+    const roleClass = role === 'seller' ? 'seller' : 'buyer';
+
+    header.innerHTML = `
+        <button class="back-btn" onclick="closeChatPanel()">
+            <i class="fas fa-arrow-left"></i>
+        </button>
+        <div class="chat-avatar" style="background: ${avatarColor}">${initials}</div>
+        <div class="chat-details">
+            <h3>
+                ${escapeHtml(otherUser.name || 'Unknown')}
+                <span class="role-badge ${roleClass}">${role}</span>
+            </h3>
+            <p class="property-title">${escapeHtml(property.title || property.location || 'Property Chat')}</p>
+        </div>
+        <div class="connection-status">● Online</div>
+    `;
+}
+
+function showChatPanel() {
+    document.querySelector('.messages-wrapper').classList.add('chat-active');
+    document.getElementById('message-input-area').style.display = 'flex';
+}
+
+function closeChatPanel() {
+    document.querySelector('.messages-wrapper').classList.remove('chat-active');
+
+    if (MessagingApp.activeConversation && MessagingApp.socket) {
+        MessagingApp.socket.emit('leave_conversation', MessagingApp.activeConversation._id);
+    }
+
+    MessagingApp.activeConversation = null;
+    updateActiveConversationUI();
+}
+
+function updateActiveConversationUI() {
+    document.querySelectorAll('.conversation-card').forEach(card => {
+        card.classList.remove('active');
+        if (MessagingApp.activeConversation && card.dataset.id === MessagingApp.activeConversation._id) {
+            card.classList.add('active');
+        }
+    });
+}
+
+// ============================================================================
+// LOAD AND DISPLAY MESSAGES
+// ============================================================================
+
+async function loadMessages(conversationId) {
+    try {
+        showLoading('Loading messages...');
+
+        const url = getApiUrl(API_CONFIG.ENDPOINTS.GET_MESSAGES, { conversationId });
+        const response = await fetch(url, {
+            headers: getAuthHeaders()
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to load messages');
+        }
+
+        const data = await response.json();
+        MessagingApp.messages = data.messages || [];
+
+        console.log('[Messages] Loaded:', MessagingApp.messages.length);
+        displayMessages(MessagingApp.messages);
+
+    } catch (error) {
+        console.error('[Messages] Error:', error);
+        showError('messages-body', 'Failed to load messages');
+    } finally {
+        hideLoading();
+    }
+}
+
+function displayMessages(messages) {
+    const container = document.getElementById('messages-body');
+    container.innerHTML = '';
+
+    if (!messages || messages.length === 0) {
+        container.innerHTML = `
+            <div class="empty-state">
+                <i class="fas fa-lock"></i>
+                <p>Messages are encrypted. Start the conversation!</p>
+            </div>
+        `;
+        return;
+    }
+
+    // Group messages by date and sender
+    const grouped = groupMessagesByDateAndSender(messages);
+
+    grouped.forEach(group => {
+        // Add date separator
+        const dateSep = document.createElement('div');
+        dateSep.className = 'date-separator';
+        dateSep.innerHTML = `<span>${formatDateLabel(group.date)}</span>`;
+        container.appendChild(dateSep);
+
+        // Add message groups
+        group.messageGroups.forEach(msgGroup => {
+            const groupElement = createMessageGroup(msgGroup);
+            container.appendChild(groupElement);
+        });
+    });
+
+    scrollToBottom();
+}
+
+function groupMessagesByDateAndSender(messages) {
+    const groups = [];
+    let currentDate = null;
+    let currentSender = null;
+    let currentGroup = [];
+
+    messages.forEach((msg, index) => {
+        const msgDate = new Date(msg.createdAt).toDateString();
+        const senderId = msg.senderId?._id || msg.senderId;
+
+        // New date
+        if (msgDate !== currentDate) {
+            if (currentGroup.length > 0) {
+                addToGroups(groups, currentDate, currentGroup);
+            }
+            currentDate = msgDate;
+            currentGroup = [];
+            currentSender = null;
+        }
+
+        // New sender or time gap > 5 minutes
+        const shouldStartNew =
+            senderId !== currentSender ||
+            (index > 0 && isLargeTimeGap(messages[index - 1].createdAt, msg.createdAt));
+
+        if (shouldStartNew && currentGroup.length > 0) {
+            addToGroups(groups, currentDate, currentGroup);
+            currentGroup = [];
+        }
+
+        currentSender = senderId;
+        currentGroup.push(msg);
+    });
+
+    // Add final group
+    if (currentGroup.length > 0) {
+        addToGroups(groups, currentDate, currentGroup);
+    }
+
+    return groups;
+}
+
+function addToGroups(groups, date, messageGroup) {
+    let dateGroup = groups.find(g => g.date === date);
+    if (!dateGroup) {
+        dateGroup = { date, messageGroups: [] };
+        groups.push(dateGroup);
+    }
+    dateGroup.messageGroups.push(messageGroup);
+}
+
+function isLargeTimeGap(time1, time2) {
+    const diff = Math.abs(new Date(time2) - new Date(time1));
+    return diff > 5 * 60 * 1000; // 5 minutes
+}
+
+function createMessageGroup(messages) {
+    const group = document.createElement('div');
+    const firstMsg = messages[0];
+    const senderId = firstMsg.senderId?._id || firstMsg.senderId;
+    const isSent = String(senderId) === String(MessagingApp.currentUser.id);
+
+    group.className = `message-group ${isSent ? 'sent' : 'received'}`;
+
+    // Add avatar for received messages
+    if (!isSent) {
+        const otherUser = getOtherParticipant(MessagingApp.activeConversation);
+        const avatarColor = getAvatarColor(otherUser.name);
+        const initials = getInitials(otherUser.name);
+        const avatarDiv = document.createElement('div');
+        avatarDiv.className = 'message-avatar';
+        avatarDiv.style.background = avatarColor;
+        avatarDiv.textContent = initials;
+        group.appendChild(avatarDiv);
+    }
+
+    const wrapper = document.createElement('div');
+    wrapper.className = 'messages-wrapper-group';
+
+    messages.forEach(msg => {
+        const bubble = createMessageBubble(msg, isSent);
+        wrapper.appendChild(bubble);
+    });
+
+    group.appendChild(wrapper);
+
+    return group;
+}
+
+function createMessageBubble(message, isSent) {
+    const bubble = document.createElement('div');
+    bubble.className = 'message-bubble';
+    bubble.dataset.id = message._id;
+
+    const time = new Date(message.createdAt).toLocaleTimeString([], {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false
+    });
+
+    let status = '';
+    if (isSent) {
+        const color = message.isRead ? '#10b981' : 'rgba(255,255,255,0.5)';
+        status = `<i class="fas fa-check-double" style="color: ${color}"></i>`;
+    }
+
+    bubble.innerHTML = `
+        <div class="message-text">${escapeHtml(message.content)}</div>
+        <div class="message-meta">
+            <span class="message-time">${time}</span>
+            ${status}
+        </div>
+    `;
+
+    return bubble;
+}
+
+// ============================================================================
+// SEND MESSAGE
+// ============================================================================
+
+async function sendMessage() {
+    const input = document.getElementById('message-input');
+    const content = input.value.trim();
+
+    if (!content || !MessagingApp.activeConversation) {
+        return;
+    }
+
+    // Clear input
+    input.value = '';
+
+    try {
+        const url = getApiUrl(API_CONFIG.ENDPOINTS.SEND_MESSAGE);
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: getAuthHeaders(),
+            body: JSON.stringify({
+                conversationId: MessagingApp.activeConversation._id,
+                content: content
+            })
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to send message');
+        }
+
+        const message = await response.json();
+        console.log('[Message] Sent:', message._id);
+
+        // Add to messages and re-render
+        MessagingApp.messages.push(message);
+        displayMessages(MessagingApp.messages);
+
+        // Update conversation list
+        updateConversationPreview(MessagingApp.activeConversation._id, content);
+
+    } catch (error) {
+        console.error('[Message] Send error:', error);
+        showNotification('Failed to send message', false);
+        input.value = content; // Restore
+    }
+}
+
+// ============================================================================
+// REAL-TIME MESSAGE HANDLING
+// ============================================================================
+
+function handleIncomingMessage(message) {
+    console.log('[Message] Incoming:', message._id);
+
+    // If message is for active conversation, add it
+    if (MessagingApp.activeConversation &&
+        message.conversationId === MessagingApp.activeConversation._id) {
+
+        MessagingApp.messages.push(message);
+        displayMessages(MessagingApp.messages);
+
+        // Mark as read
+        markAsRead(MessagingApp.activeConversation._id);
+    }
+
+    // Reload conversation list
+    loadConversations();
+}
+
+function handleMessagesRead(conversationId) {
+    if (MessagingApp.activeConversation && MessagingApp.activeConversation._id === conversationId) {
+        // Update all check marks to green
+        document.querySelectorAll('.message-bubble .fa-check-double').forEach(icon => {
+            icon.style.color = '#10b981';
         });
     }
+}
 
-    // Parse URL parameters
-    const urlParams = new URLSearchParams(window.location.search);
-    const conversationIdParam = urlParams.get('conversationId');
-    const userIdParam = urlParams.get('userId');
-    const propertyIdParam = urlParams.get('propertyId');
-    const startParam = urlParams.get('start');
+async function markAsRead(conversationId) {
+    try {
+        const url = getApiUrl(API_CONFIG.ENDPOINTS.MARK_READ, { conversationId });
+        await fetch(url, {
+            method: 'PUT',
+            headers: getAuthHeaders()
+        });
+        console.log('[Messages] Marked as read:', conversationId);
+    } catch (error) {
+        console.error('[Messages] Mark read error:', error);
+    }
+}
 
-    if (conversationIdParam) {
-        await loadConversation(conversationIdParam);
-    } else if (userIdParam && propertyIdParam && startParam === 'true') {
-        // Start a new conversation
-        await startNewConversation(userIdParam, propertyIdParam);
-    } else if (userIdParam && propertyIdParam) {
-        // Try to find existing conversation or show start prompt
-        const existing = allConversations.find(c =>
-            c.propertyId._id === propertyIdParam &&
-            (c.buyerId._id === currentUser.id || c.sellerId._id === currentUser.id)
+function updateConversationPreview(conversationId, lastMessage) {
+    const conv = MessagingApp.conversations.find(c => c._id === conversationId);
+    if (conv) {
+        conv.lastMessage = lastMessage;
+        conv.lastSenderId = MessagingApp.currentUser.id;
+        conv.updatedAt = new Date().toISOString();
+
+        // Re-sort and display
+        MessagingApp.conversations.sort((a, b) =>
+            new Date(b.updatedAt) - new Date(a.updatedAt)
         );
-        if (existing) {
-            await loadConversation(existing._id);
-        } else {
-            // Show start chat UI? Or just start it
-            await startNewConversation(userIdParam, propertyIdParam);
-        }
-    } else if (allConversations.length > 0 && window.innerWidth > 768) {
-        // Load the first interaction by default if no params AND desktop
-        await loadConversation(allConversations[0]._id);
+        displayConversations(MessagingApp.conversations);
     }
+}
 
-    // Add event listener for send button
-    const sendButton = document.getElementById('send-message-btn');
-    if (sendButton) {
-        sendButton.addEventListener('click', sendMessage);
-    }
+// ============================================================================
+// EVENT LISTENERS
+// ============================================================================
 
-    // Add event listener for Enter key in textarea
-    const messageTextarea = document.getElementById('message-textarea');
-    if (messageTextarea) {
-        messageTextarea.addEventListener('keydown', function (e) {
+function setupEventListeners() {
+    // Send message on Enter
+    const input = document.getElementById('message-input');
+    if (input) {
+        input.addEventListener('keypress', (e) => {
             if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
                 sendMessage();
@@ -95,428 +590,164 @@ document.addEventListener('DOMContentLoaded', async function () {
         });
     }
 
-    // Search functionality
-    const searchInput = document.getElementById('conversation-search');
-    if (searchInput) {
-        searchInput.addEventListener('input', function (e) {
-            const searchTerm = e.target.value.toLowerCase();
-            // Filter locally first for immediate feedback
-            const container = document.getElementById('conversations-container');
-            const items = container.querySelectorAll('.conversation-item');
-
-            items.forEach(item => {
-                const text = item.innerText.toLowerCase();
-                if (text.includes(searchTerm)) {
-                    item.style.display = 'flex';
-                } else {
-                    item.style.display = 'none';
-                }
-            });
-        });
+    // Send button
+    const sendBtn = document.getElementById('send-btn');
+    if (sendBtn) {
+        sendBtn.addEventListener('click', sendMessage);
     }
-});
 
-// Load conversations for the current user
-async function loadConversations() {
+    // Mobile menu
+    const menuBtn = document.querySelector('.mobile-menu-button');
+    const nav = document.querySelector('.navbar-nav');
+    if (menuBtn && nav) {
+        menuBtn.addEventListener('click', () => nav.classList.toggle('show'));
+    }
+}
+
+// ============================================================================
+// URL PARAMETERS (DEEP LINKING)
+// ============================================================================
+
+function handleURLParameters() {
+    const params = new URLSearchParams(window.location.search);
+    const conversationId = params.get('conversationId');
+    const propertyId = params.get('propertyId');
+
+    if (conversationId) {
+        setTimeout(() => {
+            const conv = MessagingApp.conversations.find(c => c._id === conversationId);
+            if (conv) {
+                openConversation(conv);
+            }
+        }, 500);
+    } else if (propertyId) {
+        startNewConversation(propertyId);
+    }
+}
+
+async function startNewConversation(propertyId) {
     try {
-        const response = await fetch(`${API_CONFIG.BASE_URL}/api/messages/conversations`, {
-            method: 'GET',
-            headers: getAuthHeaders()
+        showLoading('Starting conversation...');
+
+        const url = getApiUrl(API_CONFIG.ENDPOINTS.START_CONVERSATION);
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: getAuthHeaders(),
+            body: JSON.stringify({
+                propertyId: propertyId,
+                initialMessage: 'Hi, I am interested in this property.'
+            })
         });
 
         if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
+            throw new Error('Failed to start conversation');
         }
 
-        allConversations = await response.json();
-        displayConversations(allConversations);
-        return allConversations;
+        const conversation = await response.json();
+
+        await loadConversations();
+        openConversation(conversation);
 
     } catch (error) {
-        console.error('Error loading conversations:', error);
-        return [];
+        console.error('[Conversation] Start error:', error);
+        showNotification('Failed to start conversation', false);
+    } finally {
+        hideLoading();
     }
+}
+
+// ============================================================================
+// UTILITY FUNCTIONS
+// ============================================================================
+
+function getOtherParticipant(conversation) {
+    const buyer = conversation.buyerId || {};
+    const seller = conversation.sellerId || {};
+    const isBuyer = String(buyer._id || buyer) === String(MessagingApp.currentUser.id);
+    return isBuyer ? seller : buyer;
 }
 
 function getInitials(name) {
     if (!name) return '?';
-    return name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2);
+    return name.split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase();
 }
 
-// Display conversations in the sidebar
-function displayConversations(conversations) {
-    const container = document.getElementById('conversations-container');
-    const currentUser = JSON.parse(localStorage.getItem('currentUser'));
-
-    if (conversations.length === 0) {
-        container.innerHTML = '<div class="text-center py-5"><p class="text-muted">No conversations found.</p></div>';
-        return;
+function getAvatarColor(name) {
+    const colors = [
+        '#F44336', '#E91E63', '#9C27B0', '#673AB7', '#3F51B5',
+        '#2196F3', '#03A9F4', '#00BCD4', '#009688', '#4CAF50'
+    ];
+    let hash = 0;
+    for (let i = 0; i < (name || '').length; i++) {
+        hash = name.charCodeAt(i) + ((hash << 5) - hash);
     }
-
-    // If first load (empty), clear loading message
-    if (container.querySelector('.text-center')) {
-        container.innerHTML = '';
-    }
-
-    conversations.forEach(conversation => {
-        // Check if element already exists to avoid flicker
-        let conversationElement = document.getElementById(`conv-${conversation._id}`);
-        const isBuyer = currentUser.id === conversation.buyerId._id;
-        const otherUser = isBuyer ? conversation.sellerId : conversation.buyerId;
-        const property = conversation.propertyId;
-        const initials = getInitials(otherUser.name);
-        const timeStr = formatTimeAgo(new Date(conversation.updatedAt));
-        const lastMsg = conversation.lastMessage || 'No messages yet';
-
-        // Content HTML
-        const contentHTML = `
-            <div class="user-avatar">${initials}</div>
-            <div class="conversation-info">
-                <div class="conversation-top">
-                    <h3>${property.title}</h3>
-                    <span class="conversation-time">${timeStr}</span>
-                </div>
-                <div class="conversation-preview">
-                    <div style="display: flex; flex-direction: column; gap: 2px;">
-                        <p class="other-user-name">${otherUser.name} (${otherUser.role})</p>
-                        <p class="last-msg-text">${lastMsg}</p>
-                    </div>
-                </div>
-            </div>
-        `;
-
-        if (!conversationElement) {
-            conversationElement = document.createElement('div');
-            conversationElement.id = `conv-${conversation._id}`;
-            conversationElement.className = 'conversation-item';
-            if (currentConversationId === conversation._id) {
-                conversationElement.classList.add('active');
-            }
-            conversationElement.innerHTML = contentHTML;
-            conversationElement.addEventListener('click', () => {
-                document.querySelectorAll('.conversation-item').forEach(el => el.classList.remove('active'));
-                conversationElement.classList.add('active');
-                loadConversation(conversation._id);
-            });
-            container.appendChild(conversationElement);
-        } else {
-            // Update existing content if changed
-            if (conversationElement.innerHTML !== contentHTML) {
-                // Only update specific parts if possible, but innerHTML is okay for now as it's small
-                const oldTime = conversationElement.querySelector('.conversation-time').innerText;
-                const oldMsg = conversationElement.querySelector('.last-msg-text').innerText;
-
-                if (oldTime !== timeStr || oldMsg !== lastMsg) {
-                    conversationElement.querySelector('.conversation-time').innerText = timeStr;
-                    conversationElement.querySelector('.last-msg-text').innerText = lastMsg;
-                    // Move to top if new message?
-                    container.prepend(conversationElement);
-                }
-            }
-            // Ensure active state
-            if (currentConversationId === conversation._id) {
-                conversationElement.classList.add('active');
-            } else {
-                conversationElement.classList.remove('active');
-            }
-        }
-    });
+    return colors[Math.abs(hash) % colors.length];
 }
 
-// Start a new conversation
-async function startNewConversation(userId, propertyId) {
-    try {
-        const response = await fetch(`${API_CONFIG.BASE_URL}/api/messages/start`, {
-            method: 'POST',
-            headers: getAuthHeaders(),
-            body: JSON.stringify({
-                propertyId,
-                initialMessage: "Hi, I am interested in this property."
-            })
-        });
+function formatTime(dateString) {
+    const date = new Date(dateString);
+    const now = new Date();
 
-        if (response.ok) {
-            const conversation = await response.json();
-            currentConversationId = conversation._id;
-            await loadConversations();
-            await loadConversation(conversation._id);
-        } else {
-            const error = await response.json();
-            alert(error.message);
-        }
-    } catch (error) {
-        console.error('Error starting conversation:', error);
+    if (date.toDateString() === now.toDateString()) {
+        return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
     }
+    return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
 }
 
-// Load and display a specific conversation
-async function loadConversation(conversationId) {
-    try {
-        const currentUser = JSON.parse(localStorage.getItem('currentUser'));
-        currentConversationId = conversationId;
+function formatDateLabel(dateString) {
+    const date = new Date(dateString);
+    const today = new Date();
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
 
-        // Update UI structure
-        document.getElementById('chat-header').style.display = 'flex';
-        document.getElementById('message-input-container').style.display = 'block';
+    if (date.toDateString() === today.toDateString()) return 'TODAY';
+    if (date.toDateString() === yesterday.toDateString()) return 'YESTERDAY';
 
-        // Reset displayed IDs if switching
-        if (currentConversationId !== conversationId) {
-            displayedMessageIds.clear();
-            const container = document.getElementById('messages-container');
-            container.innerHTML = ''; // Clear old messages immediately
-        }
-
-        const response = await fetch(`${API_CONFIG.BASE_URL}/api/messages/conversation/${conversationId}`, {
-            method: 'GET',
-            headers: getAuthHeaders()
-        });
-
-        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-
-        const { conversation, messages } = await response.json();
-
-        // UI Header updates
-        const isBuyer = currentUser.id === conversation.buyerId._id;
-        const otherUser = isBuyer ? conversation.sellerId : conversation.buyerId;
-        const property = conversation.propertyId;
-
-        const titleElement = document.getElementById('conversation-title');
-        titleElement.innerHTML = `${property.title} <span class="property-tag" style="font-size: 0.7em; background: #eee; padding: 2px 6px; border-radius: 4px; margin-left: 8px;">${property.location}</span>`;
-
-        const avatarText = document.getElementById('active-user-avatar');
-        avatarText.textContent = getInitials(otherUser.name);
-
-        // Context info
-        const propertyContext = document.getElementById('chat-property-context');
-        const propertyBadge = document.getElementById('property-name-badge');
-        propertyContext.style.display = 'flex';
-        propertyBadge.textContent = `${otherUser.name} (${otherUser.role})`;
-
-        // Mobile view adjustment
-        document.querySelector('.messages-layout').classList.add('mobile-chat-active');
-
-        // Show Back button if mobile
-        const backBtn = document.getElementById('back-to-list-btn');
-        if (backBtn) backBtn.style.display = 'block';
-
-        displayMessages(messages);
-
-        // Mark as read
-        await markConversationAsRead(conversationId);
-
-        // Update the list to show no unread
-        // (This would be better with real unread counts in the list)
-
-    } catch (error) {
-        console.error('Error loading conversation:', error);
-    }
+    return date.toLocaleDateString([], {
+        month: 'long',
+        day: 'numeric',
+        year: 'numeric'
+    }).toUpperCase();
 }
 
-// Display messages with date separation
-function displayMessages(messages) {
-    const container = document.getElementById('messages-container');
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
 
-    // Check if we are starting fresh (switched conversation)
-    // If we have messages but displayedMessageIds is empty, it means we switched or first load
-    // But we need to handle "Append" case vs "Replace" case. 
-    // Usually loadConversation calls this with ALL messages.
-    // So we can check if the first message ID matches.
-
-    // Simplification: For now, we will clear only if the conversation changed (logic in loadConversation or here).
-    // Actually, displayedMessageIds should be cleared when switching conversation.
-
-    if (messages.length === 0) {
-        container.innerHTML = '<div class="empty-chat"><i class="fas fa-comment-dots"></i><p>No messages yet. Say hello!</p></div>';
-        displayedMessageIds.clear();
-        return;
-    }
-
-    // If container has empty-chat, clear it
-    if (container.querySelector('.empty-chat')) {
-        container.innerHTML = '';
-        displayedMessageIds.clear();
-    }
-
-    const currentUser = JSON.parse(localStorage.getItem('currentUser'));
-    let lastDate = null;
-    let shouldScroll = false;
-
-    // Filter for new messages only
-    const newMessages = messages.filter(m => !displayedMessageIds.has(m._id));
-
-    if (newMessages.length > 0) {
-        shouldScroll = true; // New messages arrived
-    }
-
-    // Note: This logic assumes messages are sorted effectively.
-    // If we are appending, we need to know the last date separator in the DOM.
-    // This is getting complex for a simple tool.
-    // Fallback: If too many new messages (initial load), clear and render all.
-    if (messages.length > displayedMessageIds.size + newMessages.length) {
-        // This means we missed some or switched context completely. Clear.
-        container.innerHTML = '';
-        displayedMessageIds.clear();
-        shouldScroll = true;
-    }
-
-    messages.forEach(message => {
-        if (displayedMessageIds.has(message._id)) return; // Skip if already shown
-
-        const date = new Date(message.createdAt);
-        const dateLabel = date.toLocaleDateString();
-
-        // Check if we need a date divider (this is tricky when appending, need to check last element in DOM)
-        const lastElement = container.lastElementChild;
-        let needsDivider = true;
-
-        if (lastElement && lastElement.classList.contains('message')) {
-            // Check date of previous message? Hard to look up.
-            // Simplified: If it's a new batch, just try to match strict date.
-            // If dateLabel matches the stored "lastDate" (which we lost context of), it's hard.
-            // Correct approach: Look at the last .date-divider in container
-            const dividers = container.querySelectorAll('.date-divider');
-            if (dividers.length > 0) {
-                const lastDividerText = dividers[dividers.length - 1].innerText;
-                if (lastDividerText === getFriendlyDate(date)) {
-                    needsDivider = false;
-                }
-            }
-        }
-
-        if (needsDivider) {
-            const divider = document.createElement('div');
-            divider.className = 'date-divider';
-            divider.innerHTML = `<span>${getFriendlyDate(date)}</span>`;
-            container.appendChild(divider);
-        }
-
-        const isSent = (message.senderId._id || message.senderId) === currentUser.id;
-        addMessageElement(message, isSent);
-        displayedMessageIds.add(message._id);
-    });
-
-    if (shouldScroll) {
+function scrollToBottom() {
+    const container = document.getElementById('messages-body');
+    if (container) {
         container.scrollTop = container.scrollHeight;
     }
 }
 
-function getFriendlyDate(date) {
-    const today = new Date();
-    if (date.toDateString() === today.toDateString()) return 'Today';
-    const yesterday = new Date();
-    yesterday.setDate(today.getDate() - 1);
-    if (date.toDateString() === yesterday.toDateString()) return 'Yesterday';
-    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-}
-
-function addMessageElement(message, isSent) {
-    const container = document.getElementById('messages-container');
-    const messageElement = document.createElement('div');
-    messageElement.className = `message ${isSent ? 'sent' : 'received'}`;
-
-    const time = new Date(message.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-
-    messageElement.innerHTML = `
-        <div class="message-bubble">
-            <div class="message-text">${message.content}</div>
-        </div>
-        <div class="message-meta">
-            <span>${time}</span>
-            ${isSent ? `<i class="fas ${message.isRead ? 'fa-check-double text-primary' : 'fa-check'}"></i>` : ''}
-        </div>
-    `;
-
-    container.appendChild(messageElement);
-    container.scrollTop = container.scrollHeight;
-}
-
-async function markConversationAsRead(conversationId) {
-    try {
-        await fetch(`${API_CONFIG.BASE_URL}/api/messages/read/${conversationId}`, {
-            method: 'PUT',
-            headers: getAuthHeaders()
-        });
-    } catch (e) {
-        console.error('Error marking as read:', e);
+function showLoading(message = 'Loading...') {
+    const loader = document.getElementById('loading-overlay');
+    if (loader) {
+        loader.innerHTML = `<i class="fas fa-spinner fa-spin"></i> ${message}`;
+        loader.style.display = 'flex';
     }
 }
 
-async function sendMessage() {
-    try {
-        const textarea = document.getElementById('message-textarea');
-        const content = textarea.value.trim();
-
-        if (!content || !currentConversationId) return;
-
-        const response = await fetch(`${API_CONFIG.BASE_URL}/api/messages`, {
-            method: 'POST',
-            headers: getAuthHeaders(),
-            body: JSON.stringify({
-                conversationId: currentConversationId,
-                content: content
-            })
-        });
-
-        if (response.ok) {
-            const newMessage = await response.json();
-            // Remove empty state if it's the first message
-            if (document.querySelector('.empty-chat')) {
-                document.getElementById('messages-container').innerHTML = '';
-            }
-            addMessageElement(newMessage, true);
-            textarea.value = '';
-            textarea.style.height = 'auto';
-
-            // Refresh conversation list to show latest message
-            loadConversations();
-        }
-    } catch (error) {
-        console.error('Error sending message:', error);
+function hideLoading() {
+    const loader = document.getElementById('loading-overlay');
+    if (loader) {
+        loader.style.display = 'none';
     }
 }
 
-function formatTimeAgo(date) {
-    const now = new Date();
-    const diffMs = now - date;
-    if (diffMs < 60000) return 'Just now';
-    const diffMins = Math.floor(diffMs / 60000);
-    if (diffMins < 60) return `${diffMins}m`;
-    const diffHours = Math.floor(diffMins / 60);
-    if (diffHours < 24) return `${diffHours}h`;
-    return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
+function showError(containerId, message) {
+    const container = document.getElementById(containerId);
+    if (container) {
+        container.innerHTML = `
+            <div class="empty-state">
+                <i class="fas fa-exclamation-triangle"></i>
+                <h3>Error</h3>
+                <p>${escapeHtml(message)}</p>
+                <button onclick="location.reload()" style="margin-top: 16px; padding: 10px 20px; background: var(--primary); color: white; border: none; border-radius: 8px; cursor: pointer;">Retry</button>
+            </div>
+        `;
+    }
 }
-
-function startPolling() {
-    if (pollingInterval) clearInterval(pollingInterval);
-    if (conversationPollingListInterval) clearInterval(conversationPollingListInterval);
-
-    // Poll active conversation every 3 seconds
-    pollingInterval = setInterval(async () => {
-        if (currentConversationId) {
-            // Silent fetch
-            try {
-                const response = await fetch(`${API_CONFIG.BASE_URL}/api/messages/conversation/${currentConversationId}`, {
-                    method: 'GET',
-                    headers: getAuthHeaders()
-                });
-                if (response.ok) {
-                    const { conversation, messages } = await response.json();
-                    displayMessages(messages); // Smart append
-                    // Update Last Message in list?
-                    // We can rely on list polling for that
-                }
-            } catch (e) { console.error('Polling error', e); }
-        }
-    }, 3000);
-
-    // Poll list every 10 seconds
-    conversationPollingListInterval = setInterval(() => {
-        loadConversations();
-    }, 10000);
-}
-
-// Ensure clean up on page unload (optional but good practice)
-window.addEventListener('beforeunload', () => {
-    if (pollingInterval) clearInterval(pollingInterval);
-    if (conversationPollingListInterval) clearInterval(conversationPollingListInterval);
-});

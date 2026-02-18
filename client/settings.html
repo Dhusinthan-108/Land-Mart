@@ -5,14 +5,338 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Settings - Land Mart</title>
-    <link rel="stylesheet" href="css/style.css">
-    <!-- Inter Font -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+    <meta name="description" content="Manage your account settings and preferences">
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="/css/dashboard-styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Poppins:wght@600;700;800&display=swap"
         rel="stylesheet">
-    <!-- Font Awesome for icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- API Configuration -->
-    <script src="js/api-config.js"></script>
+    <script src="https://cdn.socket.io/4.6.0/socket.io.min.js"></script>
+    <script src="/js/api-config.js"></script>
+    <style>
+        body {
+            background: var(--bg-secondary);
+        }
+
+        .settings-container {
+            max-width: 1200px;
+            margin: 2rem auto;
+            padding: 0 1rem;
+        }
+
+        .settings-header {
+            margin-bottom: 2rem;
+        }
+
+        .settings-header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+            color: var(--text-primary);
+        }
+
+        .settings-header p {
+            color: var(--text-secondary);
+            font-size: 1.125rem;
+        }
+
+        .settings-layout {
+            display: grid;
+            grid-template-columns: 280px 1fr;
+            gap: 2rem;
+            margin-bottom: 3rem;
+        }
+
+        .settings-sidebar {
+            background: white;
+            border-radius: var(--radius-md);
+            padding: 1.5rem;
+            box-shadow: var(--shadow-sm);
+            height: fit-content;
+            position: sticky;
+            top: 100px;
+        }
+
+        .settings-nav {
+            list-style: none;
+        }
+
+        .settings-nav-item {
+            margin-bottom: 0.5rem;
+        }
+
+        .settings-nav-link {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.875rem 1rem;
+            border-radius: var(--radius-sm);
+            color: var(--text-secondary);
+            transition: all var(--transition-fast);
+            cursor: pointer;
+            font-weight: 500;
+            font-size: 0.9375rem;
+        }
+
+        .settings-nav-link:hover {
+            background: var(--gray-50);
+            color: var(--primary);
+            transform: translateX(4px);
+        }
+
+        .settings-nav-link.active {
+            background: var(--primary-50);
+            color: var(--primary);
+            font-weight: 600;
+        }
+
+        .settings-nav-link i {
+            width: 20px;
+            text-align: center;
+            font-size: 1.125rem;
+        }
+
+        .settings-content {
+            background: white;
+            border-radius: var(--radius-md);
+            padding: 2.5rem;
+            box-shadow: var(--shadow-sm);
+            min-height: 500px;
+        }
+
+        .settings-section {
+            display: none;
+            animation: fadeIn 0.3s ease-in;
+        }
+
+        .settings-section.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .section-title {
+            font-size: 1.75rem;
+            margin-bottom: 0.5rem;
+            color: var(--text-primary);
+            font-weight: 700;
+        }
+
+        .section-description {
+            color: var(--text-secondary);
+            margin-bottom: 2.5rem;
+            font-size: 1rem;
+        }
+
+        .settings-group {
+            margin-bottom: 2.5rem;
+            padding-bottom: 2.5rem;
+            border-bottom: 1px solid var(--gray-200);
+        }
+
+        .settings-group:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+            padding-bottom: 0;
+        }
+
+        .settings-group-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 1.5rem;
+            color: var(--text-primary);
+        }
+
+        .profile-avatar-section {
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+            margin-bottom: 2.5rem;
+            padding: 1.5rem;
+            background: var(--gradient-purple-soft);
+            border-radius: var(--radius-md);
+        }
+
+        .avatar-display {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            background: var(--gradient-purple);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.5rem;
+            font-weight: bold;
+            box-shadow: var(--shadow-md);
+        }
+
+        .avatar-info h3 {
+            margin: 0 0 0.25rem 0;
+            font-size: 1.5rem;
+            color: var(--text-primary);
+        }
+
+        .avatar-info p {
+            margin: 0;
+            color: var(--text-muted);
+            font-size: 0.9375rem;
+        }
+
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 52px;
+            height: 28px;
+        }
+
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: var(--gray-300);
+            transition: 0.3s;
+            border-radius: 34px;
+        }
+
+        .toggle-slider:before {
+            position: absolute;
+            content: "";
+            height: 22px;
+            width: 22px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: 0.3s;
+            border-radius: 50%;
+        }
+
+        input:checked+.toggle-slider {
+            background-color: var(--primary);
+        }
+
+        input:checked+.toggle-slider:before {
+            transform: translateX(24px);
+        }
+
+        .preference-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1.25rem 0;
+        }
+
+        .preference-item:not(:last-child) {
+            border-bottom: 1px solid var(--gray-100);
+        }
+
+        .preference-info h4 {
+            margin: 0 0 0.375rem 0;
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .preference-info p {
+            margin: 0;
+            font-size: 0.875rem;
+            color: var(--text-muted);
+        }
+
+        .danger-zone {
+            background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+            border: 2px solid #fecaca;
+            border-radius: var(--radius-md);
+            padding: 2rem;
+            margin-top: 2rem;
+        }
+
+        .danger-zone h3 {
+            color: var(--danger);
+            margin-bottom: 0.75rem;
+            font-size: 1.25rem;
+        }
+
+        .danger-zone p {
+            color: #991b1b;
+            margin-bottom: 1.5rem;
+        }
+
+        .btn-danger {
+            background: var(--danger);
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #dc2626;
+            transform: scale(1.02);
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-group:last-child {
+            margin-bottom: 0;
+        }
+
+        @media (max-width: 768px) {
+            .settings-layout {
+                grid-template-columns: 1fr;
+            }
+
+            .settings-sidebar {
+                position: static;
+                overflow-x: auto;
+            }
+
+            .settings-nav {
+                display: flex;
+                gap: 0.5rem;
+                overflow-x: auto;
+                padding-bottom: 0.5rem;
+            }
+
+            .settings-nav-item {
+                margin-bottom: 0;
+                flex-shrink: 0;
+            }
+
+            .settings-nav-link {
+                white-space: nowrap;
+            }
+
+            .settings-content {
+                padding: 1.5rem;
+            }
+
+            .profile-avatar-section {
+                flex-direction: column;
+                text-align: center;
+            }
+        }
+    </style>
 </head>
 
 <body>
@@ -23,11 +347,11 @@
                 <a href="index.html" class="navbar-brand">Land Mart</a>
                 <ul class="navbar-nav">
                     <li><a href="index.html" class="nav-link">Home</a></li>
-                    <li><a href="properties.html" class="nav-link">Properties</a></li>
-                    <li><a href="add-property.html" class="nav-link">Sell Property</a></li>
                     <li><a href="unified-dashboard.html" class="nav-link">Dashboard</a></li>
+                    <li><a href="add-property.html" class="nav-link">Add Property</a></li>
+                    <li><a href="properties.html" class="nav-link">Browse Properties</a></li>
+                    <li><a href="messages.html" class="nav-link">Messages</a></li>
                     <li><a href="settings.html" class="nav-link active">Settings</a></li>
-                    <li><a href="login.html" class="nav-link">Login</a></li>
                 </ul>
                 <button class="mobile-menu-button">
                     <i class="fas fa-bars"></i>
@@ -36,225 +360,401 @@
         </div>
     </header>
 
-    <main class="settings-main">
-        <div class="container">
-            <div class="settings-header text-center mb-5">
-                <h1 class="display-4 mb-3">Account Settings</h1>
-                <p class="lead">Manage your account preferences and security settings</p>
+    <!-- PIN Modal (handles both Set PIN and Verify PIN) -->
+    <div id="pin-modal" class="modal"
+        style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 10000; align-items: center; justify-content: center;">
+        <div class="modal-content"
+            style="background: white; padding: 2rem; border-radius: var(--radius-lg); max-width: 400px; width: 90%; box-shadow: 0 10px 40px rgba(0,0,0,0.2);">
+            <div style="text-align: center; margin-bottom: 1.5rem;">
+                <div
+                    style="width: 60px; height: 60px; background: var(--primary-light); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 1rem;">
+                    <i class="fas fa-lock" style="font-size: 1.5rem; color: var(--primary);"></i>
+                </div>
+                <h3 id="pin-modal-title" style="margin: 0 0 0.5rem 0; font-size: 1.25rem;">Enter Security PIN</h3>
+                <p id="pin-modal-desc" style="margin: 0; color: var(--gray-600); font-size: 0.875rem;">Enter your PIN to
+                    access documents</p>
             </div>
 
-            <div class="settings-layout">
-                <aside class="settings-sidebar">
-                    <div class="settings-nav">
-                        <ul class="nav flex-column">
-                            <li class="nav-item">
-                                <a href="#profile" class="nav-link active">
-                                    <i class="fas fa-user"></i> Profile
-                                </a>
-                            </li>
-                            <li class="nav-item">
-                                <a href="#notifications" class="nav-link">
-                                    <i class="fas fa-bell"></i> Notifications
-                                </a>
-                            </li>
-                            <li class="nav-item">
-                                <a href="#privacy" class="nav-link">
-                                    <i class="fas fa-shield-alt"></i> Privacy
-                                </a>
-                            </li>
-                            <li class="nav-item">
-                                <a href="#security" class="nav-link">
-                                    <i class="fas fa-lock"></i> Security
-                                </a>
-                            </li>
-                        </ul>
+            <!-- Verify PIN Form -->
+            <form id="pin-verify-form" onsubmit="verifyPinAndAccess(event)">
+                <div class="form-group" style="margin-bottom: 1.5rem;">
+                    <input type="password" id="pin-input" class="form-control" placeholder="Enter your PIN"
+                        maxlength="6" required style="text-align: center; font-size: 1.25rem; letter-spacing: 0.5rem;">
+                </div>
+                <div style="display: flex; gap: 0.75rem;">
+                    <button type="button" class="btn btn-outline-secondary" onclick="closePinModal()"
+                        style="flex: 1;">Cancel</button>
+                    <button type="submit" class="btn btn-primary" id="pin-submit-btn" style="flex: 1;">
+                        <i class="fas fa-unlock"></i> Unlock
+                    </button>
+                </div>
+            </form>
+
+            <!-- Set PIN Form (shown when no PIN exists) -->
+            <form id="pin-set-form" style="display: none;" onsubmit="setNewPinAndAccess(event)">
+                <div class="form-group" style="margin-bottom: 1rem;">
+                    <input type="password" id="pin-new-input" class="form-control"
+                        placeholder="Create a PIN (4-6 digits)" maxlength="6" required
+                        style="text-align: center; font-size: 1.25rem; letter-spacing: 0.5rem;">
+                </div>
+                <div class="form-group" style="margin-bottom: 1.5rem;">
+                    <input type="password" id="pin-confirm-input" class="form-control" placeholder="Confirm your PIN"
+                        maxlength="6" required style="text-align: center; font-size: 1.25rem; letter-spacing: 0.5rem;">
+                </div>
+                <div style="display: flex; gap: 0.75rem;">
+                    <button type="button" class="btn btn-outline-secondary" onclick="closePinModal()"
+                        style="flex: 1;">Cancel</button>
+                    <button type="submit" class="btn btn-primary" style="flex: 1;">
+                        <i class="fas fa-shield-alt"></i> Set PIN & Open
+                    </button>
+                </div>
+            </form>
+
+            <p id="pin-error"
+                style="margin-top: 1rem; margin-bottom: 0; color: var(--danger); font-size: 0.875rem; text-align: center; display: none;">
+            </p>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <main class="settings-container">
+        <div class="settings-header">
+            <h1>Settings</h1>
+            <p>Manage your account settings and preferences</p>
+        </div>
+
+        <div class="settings-layout">
+            <!-- Sidebar Navigation -->
+            <aside class="settings-sidebar">
+                <ul class="settings-nav">
+                    <li class="settings-nav-item">
+                        <a class="settings-nav-link active" data-section="profile">
+                            <i class="fas fa-user"></i>
+                            <span>Profile</span>
+                        </a>
+                    </li>
+                    <li class="settings-nav-item">
+                        <a class="settings-nav-link" data-section="security">
+                            <i class="fas fa-file-alt"></i>
+                            <span>Documents</span>
+                        </a>
+                    </li>
+                    <li class="settings-nav-item">
+                        <a class="settings-nav-link" data-section="notifications">
+                            <i class="fas fa-bell"></i>
+                            <span>Notifications</span>
+                        </a>
+                    </li>
+                    <li class="settings-nav-item">
+                        <a class="settings-nav-link" data-section="preferences">
+                            <i class="fas fa-cog"></i>
+                            <span>Preferences</span>
+                        </a>
+                    </li>
+                    <li class="settings-nav-item">
+                        <a class="settings-nav-link" data-section="account">
+                            <i class="fas fa-user-cog"></i>
+                            <span>Account</span>
+                        </a>
+                    </li>
+                </ul>
+            </aside>
+
+            <!-- Content Area -->
+            <div class="settings-content">
+                <!-- Profile Section -->
+                <div id="profile-section" class="settings-section active">
+                    <h2 class="section-title">Profile Information</h2>
+                    <p class="section-description">Update your personal information and profile details</p>
+
+                    <div class="profile-avatar-section">
+                        <div class="avatar-display" id="settings-avatar">
+                            <span id="settings-avatar-initials">?</span>
+                        </div>
+                        <div class="avatar-info">
+                            <h3 id="settings-display-name">Loading...</h3>
+                            <p id="settings-display-email">email@example.com</p>
+                        </div>
                     </div>
-                </aside>
 
-                <div class="settings-content">
-                    <!-- Profile Settings Section -->
-                    <div id="profile" class="settings-section">
-                        <h2 class="section-title">Profile Information</h2>
-                        <form id="profile-form" class="settings-form">
+                    <form id="profile-form">
+                        <div class="settings-group">
+                            <h3 class="settings-group-title">Basic Information</h3>
+
                             <div class="form-group">
-                                <label for="settings-full-name" class="form-label">Full Name</label>
-                                <input type="text" id="settings-full-name" class="form-control"
-                                    placeholder="Enter your full name">
+                                <label for="profile-name" class="form-label">Full Name</label>
+                                <input type="text" id="profile-name" class="form-control"
+                                    placeholder="Enter your full name" required>
                             </div>
 
                             <div class="form-group">
-                                <label for="settings-email" class="form-label">Email Address</label>
-                                <input type="email" id="settings-email" class="form-control"
-                                    placeholder="Enter your email address" disabled>
-                                <small class="form-text text-muted">Email cannot be changed from here. Contact support
-                                    to update email.</small>
+                                <label for="profile-email" class="form-label">Email Address</label>
+                                <input type="email" id="profile-email" class="form-control" disabled>
+                                <small class="text-muted">Contact support to change your email address</small>
                             </div>
 
                             <div class="form-group">
-                                <label for="settings-phone" class="form-label">Phone Number</label>
-                                <input type="tel" id="settings-phone" class="form-control"
-                                    placeholder="Enter your phone number">
+                                <label for="profile-phone" class="form-label">Phone Number</label>
+                                <input type="tel" id="profile-phone" class="form-control" placeholder="+91 98765 43210">
                             </div>
 
                             <div class="form-group">
-                                <label for="settings-bio" class="form-label">Bio</label>
-                                <textarea id="settings-bio" class="form-control" rows="4"
+                                <label for="profile-bio" class="form-label">Bio</label>
+                                <textarea id="profile-bio" class="form-control" rows="4"
                                     placeholder="Tell us about yourself"></textarea>
                             </div>
+                        </div>
 
-                            <button type="submit" class="btn btn-primary">
-                                <i class="fas fa-save"></i> Save Changes
-                            </button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save"></i> Save Changes
+                        </button>
+                    </form>
+                </div>
+
+                <!-- Security Section -->
+                <div id="security-section" class="settings-section">
+                    <h2 class="section-title"><i class="fas fa-shield-alt"></i> Secure Documents</h2>
+                    <p class="section-description">Upload and manage your legal documents with password protection</p>
+
+                    <!-- Add Document Button -->
+                    <div style="margin-bottom: 1.5rem;">
+                        <button class="btn btn-primary" onclick="toggleUploadForm()" id="add-doc-btn"
+                            style="padding: 0.75rem 1.5rem; font-size: 1rem;">
+                            <i class="fas fa-plus-circle"></i> Add Document
+                        </button>
+                    </div>
+
+                    <!-- Document Upload Form (hidden by default) -->
+                    <div id="upload-form-section"
+                        style="display: none; background: var(--gray-50); padding: 1.5rem; border-radius: var(--radius-md); margin-bottom: 1.5rem; border: 2px dashed var(--primary-light);">
+                        <h4 style="margin: 0 0 1rem 0; font-size: 1rem; font-weight: 600;"><i class="fas fa-file-upload"
+                                style="color: var(--primary);"></i> Upload New Document</h4>
+                        <form id="document-upload-form">
+                            <div class="form-group">
+                                <label for="document-category" class="form-label">Document Category</label>
+                                <select id="document-category" class="form-control" required>
+                                    <option value="">Select category...</option>
+                                    <option value="identity">Identity Proof (Aadhaar, PAN, Passport)</option>
+                                    <option value="property">Property Documents (Sale Deed, Title Deed)</option>
+                                    <option value="bank">Bank Statements</option>
+                                    <option value="other">Other Documents</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="document-file" class="form-label">Choose File</label>
+                                <input type="file" id="document-file" class="form-control"
+                                    accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" required>
+                                <small class="text-muted">Supported: PDF, Images, Word documents (Max 10MB)</small>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="document-description" class="form-label">Description (Optional)</label>
+                                <input type="text" id="document-description" class="form-control"
+                                    placeholder="e.g., Aadhaar Card Front">
+                            </div>
+
+                            <div class="form-group">
+                                <label for="document-password" class="form-label">Document Password
+                                    (Optional)</label>
+                                <input type="password" id="document-password" class="form-control"
+                                    placeholder="Set password to protect this document">
+                                <small class="text-muted">Leave empty for no password protection</small>
+                            </div>
+
+                            <div style="display: flex; gap: 0.75rem;">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-upload"></i> Upload Document
+                                </button>
+                                <button type="button" class="btn btn-outline-secondary" onclick="toggleUploadForm()">
+                                    Cancel
+                                </button>
+                            </div>
                         </form>
                     </div>
 
-                    <!-- Notification Settings Section -->
-                    <div id="notifications" class="settings-section" style="display: none;">
-                        <h2 class="section-title">Notification Preferences</h2>
-                        <form id="notifications-form" class="settings-form">
-                            <div class="form-group">
-                                <div class="form-check">
-                                    <input type="checkbox" id="email-notifications" name="email-notifications"
-                                        class="form-check-input">
-                                    <label for="email-notifications" class="form-check-label">Email
-                                        Notifications</label>
-                                </div>
-                                <small class="form-text text-muted">Receive notifications via email</small>
-                            </div>
-
-                            <div class="form-group">
-                                <div class="form-check">
-                                    <input type="checkbox" id="message-notifications" name="message-notifications"
-                                        class="form-check-input" checked>
-                                    <label for="message-notifications" class="form-check-label">Message
-                                        Notifications</label>
-                                </div>
-                                <small class="form-text text-muted">Get notified when you receive new messages</small>
-                            </div>
-
-                            <div class="form-group">
-                                <div class="form-check">
-                                    <input type="checkbox" id="property-updates" name="property-updates"
-                                        class="form-check-input" checked>
-                                    <label for="property-updates" class="form-check-label">Property Updates</label>
-                                </div>
-                                <small class="form-text text-muted">Get notified about updates to properties you've
-                                    saved</small>
-                            </div>
-
-                            <button type="submit" class="btn btn-primary">
-                                <i class="fas fa-save"></i> Save Preferences
-                            </button>
-                        </form>
-                    </div>
-
-                    <!-- Privacy Settings Section -->
-                    <div id="privacy" class="settings-section" style="display: none;">
-                        <h2 class="section-title">Privacy Settings</h2>
-                        <form id="privacy-form" class="settings-form">
-                            <div class="form-group">
-                                <div class="form-check">
-                                    <input type="checkbox" id="profile-public" class="form-check-input" checked>
-                                    <label for="profile-public" class="form-check-label">Public Profile</label>
-                                </div>
-                                <small class="form-text text-muted">Allow other users to view your profile</small>
-                            </div>
-
-                            <div class="form-group">
-                                <div class="form-check">
-                                    <input type="checkbox" id="show-contact-info" class="form-check-input" checked>
-                                    <label for="show-contact-info" class="form-check-label">Show Contact
-                                        Information</label>
-                                </div>
-                                <small class="form-text text-muted">Display your contact information to other
-                                    users</small>
-                            </div>
-
-                            <div class="form-group">
-                                <div class="form-check">
-                                    <input type="checkbox" id="activity-visibility" class="form-check-input" checked>
-                                    <label for="activity-visibility" class="form-check-label">Activity
-                                        Visibility</label>
-                                </div>
-                                <small class="form-text text-muted">Show your activity to other users</small>
-                            </div>
-
-                            <h3 class="mt-4">Data Management</h3>
-                            <div class="form-group">
-                                <button type="button" class="btn btn-outline" id="export-data">
-                                    <i class="fas fa-download"></i> Export My Data
-                                </button>
-                                <small class="form-text text-muted">Download a copy of your personal data</small>
-                            </div>
-
-                            <div class="form-group">
-                                <button type="button" class="btn btn-outline" id="clear-history">
-                                    <i class="fas fa-trash-alt"></i> Clear Browsing History
-                                </button>
-                                <small class="form-text text-muted">Remove your search and viewing history</small>
-                            </div>
-
-                            <button type="submit" class="btn btn-primary">
-                                <i class="fas fa-save"></i> Save Privacy Settings
-                            </button>
-                        </form>
-                    </div>
-
-                    <!-- Security Settings Section -->
-                    <div id="security" class="settings-section" style="display: none;">
-                        <h2 class="section-title">Security</h2>
-                        <form id="security-form" class="settings-form">
-                            <div class="form-group">
-                                <label for="current-password" class="form-label">Current Password</label>
-                                <input type="password" id="current-password" class="form-control"
-                                    placeholder="Enter your current password" required>
-                            </div>
-
-                            <div class="form-group">
-                                <label for="new-password" class="form-label">New Password</label>
-                                <input type="password" id="new-password" class="form-control"
-                                    placeholder="Enter new password" required>
-                            </div>
-
-                            <div class="form-group">
-                                <label for="confirm-password" class="form-label">Confirm New Password</label>
-                                <input type="password" id="confirm-password" class="form-control"
-                                    placeholder="Confirm new password" required>
-                            </div>
-
-                            <div class="form-group">
-                                <div class="form-check">
-                                    <input type="checkbox" id="two-factor-auth" class="form-check-input">
-                                    <label for="two-factor-auth" class="form-check-label">Enable Two-Factor
-                                        Authentication</label>
-                                </div>
-                                <small class="form-text text-muted">Add an extra layer of security to your
-                                    account</small>
-                            </div>
-
-                            <div class="form-group">
-                                <button type="button" class="btn btn-outline" id="manage-devices">
-                                    <i class="fas fa-laptop"></i> Manage Active Sessions
-                                </button>
-                            </div>
-
-                            <button type="submit" class="btn btn-primary">
-                                <i class="fas fa-lock"></i> Update Password
-                            </button>
-                        </form>
-
-                        <div class="danger-zone card mt-4">
-                            <h3 class="section-title">Danger Zone</h3>
-                            <div class="form-group">
-                                <button type="button" class="btn btn-danger" id="delete-account">
-                                    <i class="fas fa-trash-alt"></i> Delete Account
-                                </button>
-                                <small class="form-text text-muted">Permanently delete your account and all associated
-                                    data</small>
-                            </div>
+                    <!-- Documents List -->
+                    <div id="documents-list">
+                        <h4 style="font-size: 1rem; margin-bottom: 1rem; font-weight: 600;"><i
+                                class="fas fa-folder-open" style="color: var(--primary); margin-right: 0.5rem;"></i>My
+                            Documents</h4>
+                        <div id="documents-container">
+                            <p class="text-muted">Loading documents...</p>
                         </div>
                     </div>
                 </div>
+
+                <!-- Change Password -->
+                <form id="password-form">
+                    <div class="settings-group">
+                        <h3 class="settings-group-title">Change Password</h3>
+
+                        <div class="form-group">
+                            <label for="current-password" class="form-label">Current Password</label>
+                            <input type="password" id="current-password" class="form-control"
+                                placeholder="Enter current password" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="new-password" class="form-label">New Password</label>
+                            <input type="password" id="new-password" class="form-control"
+                                placeholder="Enter new password" required>
+                            <small class="text-muted">Password must be at least 8 characters long</small>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="confirm-password" class="form-label">Confirm New Password</label>
+                            <input type="password" id="confirm-password" class="form-control"
+                                placeholder="Confirm new password" required>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-key"></i> Update Password
+                    </button>
+                </form>
+
+                <div class="danger-zone">
+                    <h3><i class="fas fa-exclamation-triangle"></i> Danger Zone</h3>
+                    <p>Once you delete your account, there is no going back. Please be certain.</p>
+                    <button class="btn btn-danger" onclick="confirmDeleteAccount()">
+                        <i class="fas fa-trash"></i> Delete Account
+                    </button>
+                </div>
+            </div>
+
+            <!-- Notifications Section -->
+            <div id="notifications-section" class="settings-section">
+                <h2 class="section-title">Notification Preferences</h2>
+                <p class="section-description">Choose what notifications you want to receive</p>
+
+                <div class="settings-group">
+                    <h3 class="settings-group-title">Email Notifications</h3>
+
+                    <div class="preference-item">
+                        <div class="preference-info">
+                            <h4>New Messages</h4>
+                            <p>Get notified when you receive new messages</p>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="notify-messages" checked>
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+
+                    <div class="preference-item">
+                        <div class="preference-info">
+                            <h4>Property Updates</h4>
+                            <p>Receive updates about your listed properties</p>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="notify-properties" checked>
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+
+                    <div class="preference-item">
+                        <div class="preference-info">
+                            <h4>Saved Property Alerts</h4>
+                            <p>Get notified about price changes on saved properties</p>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="notify-saved" checked>
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+
+                    <div class="preference-item">
+                        <div class="preference-info">
+                            <h4>Marketing Emails</h4>
+                            <p>Receive newsletters and promotional content</p>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="notify-marketing">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                </div>
+
+                <button class="btn btn-primary" onclick="saveNotificationPreferences()">
+                    <i class="fas fa-save"></i> Save Preferences
+                </button>
+            </div>
+
+            <!-- Preferences Section -->
+            <div id="preferences-section" class="settings-section">
+                <h2 class="section-title">App Preferences</h2>
+                <p class="section-description">Customize your Land Mart experience</p>
+
+                <div class="settings-group">
+                    <h3 class="settings-group-title">Display Settings</h3>
+
+                    <div class="form-group">
+                        <label for="language-select" class="form-label">Language</label>
+                        <select id="language-select" class="form-control">
+                            <option value="en">English</option>
+                            <option value="hi">हिन्दी (Hindi)</option>
+                            <option value="ta">தமிழ் (Tamil)</option>
+                            <option value="te">తెలుగు (Telugu)</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="currency-select" class="form-label">Currency</label>
+                        <select id="currency-select" class="form-control">
+                            <option value="INR">₹ INR (Indian Rupee)</option>
+                            <option value="USD">$ USD (US Dollar)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="settings-group">
+                    <h3 class="settings-group-title">Privacy Settings</h3>
+
+                    <div class="preference-item">
+                        <div class="preference-info">
+                            <h4>Show Profile to Others</h4>
+                            <p>Allow other users to view your profile</p>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="privacy-profile" checked>
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+
+                    <div class="preference-item">
+                        <div class="preference-info">
+                            <h4>Show Phone Number</h4>
+                            <p>Display your phone number on property listings</p>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="privacy-phone" checked>
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                </div>
+
+                <button class="btn btn-primary" onclick="saveAppPreferences()">
+                    <i class="fas fa-save"></i> Save Preferences
+                </button>
+            </div>
+
+            <!-- Account Section -->
+            <div id="account-section" class="settings-section">
+                <h2 class="section-title">Account Management</h2>
+                <p class="section-description">Manage your account and data</p>
+
+                <div class="settings-group">
+                    <h3 class="settings-group-title">Account Information</h3>
+                    <div class="form-group">
+                        <p><strong>Account Type:</strong> <span id="account-type">Standard User</span></p>
+                        <p><strong>Member Since:</strong> <span id="member-since">Loading...</span></p>
+                        <p><strong>User ID:</strong> <span id="user-id"
+                                style="font-family: monospace; font-size: 0.875rem;">Loading...</span></p>
+                    </div>
+                </div>
+
+
             </div>
         </div>
     </main>
@@ -262,191 +762,724 @@
     <!-- Footer -->
     <footer>
         <div class="container">
-            <div class="footer-content">
-                <div class="footer-column">
-                    <h3 class="footer-heading">Land Mart</h3>
-                    <p>Your trusted platform for buying and selling land properties across India.</p>
-                    <div class="social-links">
-                        <a href="#"><i class="fab fa-facebook-f"></i></a>
-                        <a href="#"><i class="fab fa-twitter"></i></a>
-                        <a href="#"><i class="fab fa-instagram"></i></a>
-                        <a href="#"><i class="fab fa-linkedin-in"></i></a>
-                    </div>
-                </div>
-
-                <div class="footer-column">
-                    <h3 class="footer-heading">Quick Links</h3>
-                    <ul class="footer-links">
-                        <li><a href="index.html">Home</a></li>
-                        <li><a href="properties.html">Properties</a></li>
-                        <li><a href="add-property.html">Sell Property</a></li>
-                        <li><a href="unified-dashboard.html">Dashboard</a></li>
-                        <li><a href="login.html">Login</a></li>
-                    </ul>
-                </div>
-
-                <div class="footer-column">
-                    <h3 class="footer-heading">Categories</h3>
-                    <ul class="footer-links">
-                        <li><a href="#">Agricultural Land</a></li>
-                        <li><a href="#">Commercial Plots</a></li>
-                        <li><a href="#">Residential Land</a></li>
-                        <li><a href="#">Industrial Land</a></li>
-                        <li><a href="#">Farm Houses</a></li>
-                    </ul>
-                </div>
-
-                <div class="footer-column">
-                    <h3 class="footer-heading">Contact Us</h3>
-                    <ul class="footer-links">
-                        <li><i class="fas fa-map-marker-alt"></i> Chennai, Tamil Nadu</li>
-                        <li><i class="fas fa-phone"></i> +91 98765 43210</li>
-                        <li><i class="fas fa-envelope"></i> info@landmart.com</li>
-                    </ul>
-                </div>
-            </div>
-
             <div class="copyright">
                 <p>&copy; 2025 Land Mart. All rights reserved.</p>
-                <div class="legal-links">
-                    <a href="#">Privacy Policy</a> |
-                    <a href="#">Terms of Service</a> |
-                    <a href="#">Cookie Policy</a>
-                </div>
             </div>
         </div>
     </footer>
 
-    <script src="js/main.js"></script>
+    <script src="/js/main.js"></script>
     <script>
-        // Settings navigation functionality
+        // Settings Navigation
         document.addEventListener('DOMContentLoaded', function () {
-            // Check if user is logged in
-            const currentUser = JSON.parse(localStorage.getItem('currentUser'));
-            if (!currentUser) {
+            // Check authentication
+            if (!isAuthenticated()) {
                 window.location.href = 'login.html';
                 return;
             }
 
-            // Check if user is admin and show admin panel link
-            if (currentUser && currentUser.role === 'admin') {
-                // Add admin panel link to settings nav
-                const settingsNav = document.querySelector('.settings-nav ul');
-                const adminLi = document.createElement('li');
-                adminLi.className = 'nav-item';
-                adminLi.innerHTML = '<a href="admin.html" class="nav-link"><i class="fas fa-cog"></i> Admin Panel</a>';
-                settingsNav.appendChild(adminLi);
-            }
-
-            // Load user profile data
-            loadUserProfile();
-
-            const navLinks = document.querySelectorAll('.settings-nav a');
+            const navLinks = document.querySelectorAll('.settings-nav-link');
             const sections = document.querySelectorAll('.settings-section');
 
             navLinks.forEach(link => {
                 link.addEventListener('click', function (e) {
                     e.preventDefault();
+                    const targetSection = this.getAttribute('data-section');
 
-                    // Remove active class from all links and sections
-                    navLinks.forEach(l => l.parentElement.classList.remove('active'));
-                    sections.forEach(section => section.style.display = 'none');
+                    // Check if trying to access security (documents) section
+                    if (targetSection === 'security') {
+                        // Check if user has set a PIN
+                        checkAndShowPinModal(this);
+                        return;
+                    }
 
-                    // Add active class to clicked link
-                    this.parentElement.classList.add('active');
+                    // Update active nav link
+                    navLinks.forEach(l => l.classList.remove('active'));
+                    this.classList.add('active');
 
-                    // Show corresponding section
-                    const targetId = this.getAttribute('href').substring(1);
-                    document.getElementById(targetId).style.display = 'block';
+                    // Show target section
+                    sections.forEach(s => s.classList.remove('active'));
+                    document.getElementById(`${targetSection}-section`).classList.add('active');
+
+                    // Scroll to top for better UX
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
                 });
             });
 
-            // Add event listeners for buttons
-            document.getElementById('export-data').addEventListener('click', exportUserData);
-            document.getElementById('clear-history').addEventListener('click', clearBrowsingHistory);
-            document.getElementById('manage-devices').addEventListener('click', manageDevices);
-            document.getElementById('delete-account').addEventListener('click', deleteAccount);
+            // Load user profile data
+            loadUserProfile();
+
+            // Profile form submission
+            const profileForm = document.getElementById('profile-form');
+            if (profileForm) {
+                profileForm.addEventListener('submit', handleProfileUpdate);
+            }
+
+            // Password form submission
+            const passwordForm = document.getElementById('password-form');
+            if (passwordForm) {
+                passwordForm.addEventListener('submit', handlePasswordChange);
+            }
+
+            // Document upload form submission
+            const documentUploadForm = document.getElementById('document-upload-form');
+            if (documentUploadForm) {
+                documentUploadForm.addEventListener('submit', handleDocumentUpload);
+            }
+
+            // Load documents
+            loadDocuments();
 
             // Mobile menu toggle
             const mobileMenuButton = document.querySelector('.mobile-menu-button');
             const navbarNav = document.querySelector('.navbar-nav');
-
             if (mobileMenuButton && navbarNav) {
                 mobileMenuButton.addEventListener('click', function () {
                     navbarNav.classList.toggle('show');
                 });
             }
+
+            // Load saved preferences
+            loadPreferences();
         });
 
-        // Load user profile data from backend
+        // Load user profile
         async function loadUserProfile() {
             try {
-                const currentUser = JSON.parse(localStorage.getItem('currentUser'));
-                if (!currentUser) {
-                    showNotification('You must be logged in to access settings.', false);
-                    return;
-                }
-
                 const response = await fetch(`${API_CONFIG.BASE_URL}/api/users/profile`, {
-                    method: 'GET',
                     headers: getAuthHeaders()
                 });
 
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
+                if (response.ok) {
+                    const userData = await response.json();
+
+                    // Update profile display
+                    document.getElementById('settings-display-name').textContent = userData.name || 'User';
+                    document.getElementById('settings-display-email').textContent = userData.email || '';
+
+                    // Avatar initials
+                    if (userData.name) {
+                        const initials = userData.name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2);
+                        document.getElementById('settings-avatar-initials').textContent = initials;
+                    }
+
+                    // Populate form fields
+                    document.getElementById('profile-name').value = userData.name || '';
+                    document.getElementById('profile-email').value = userData.email || '';
+                    document.getElementById('profile-phone').value = userData.phone || '';
+                    document.getElementById('profile-bio').value = userData.bio || '';
+
+                    // Account info
+                    document.getElementById('account-type').textContent = userData.role ? userData.role.charAt(0).toUpperCase() + userData.role.slice(1) : 'User';
+                    document.getElementById('user-id').textContent = userData._id || 'N/A';
+
+                    if (userData.createdAt) {
+                        const date = new Date(userData.createdAt);
+                        document.getElementById('member-since').textContent = date.toLocaleDateString('en-US', {
+                            year: 'numeric',
+                            month: 'long',
+                            day: 'numeric'
+                        });
+                    }
+                } else if (response.status === 401 || response.status === 404) {
+                    // Start of Session Handling
+                    console.error('Invalid session detected (401/404). Redirecting to login.');
+                    localStorage.removeItem('currentUser');
+                    localStorage.removeItem('token');
+                    window.location.href = 'login.html?session=expired';
+                    return;
+                } else {
+                    console.error('Failed to load profile:', response.status);
+                    showNotification('Failed to load profile data', false);
                 }
-
-                const userData = await response.json();
-
-                // Populate profile form fields
-                document.getElementById('settings-full-name').value = userData.name || '';
-                document.getElementById('settings-email').value = userData.email || '';
-                document.getElementById('settings-phone').value = userData.phone || '';
-                document.getElementById('settings-bio').value = userData.bio || '';
-
-                // Load notification preferences
-                document.getElementById('email-notifications').checked = userData.emailNotifications !== false;
-                document.getElementById('message-notifications').checked = userData.messageNotifications !== false;
-                document.getElementById('property-updates').checked = userData.propertyUpdates !== false;
-
-                // Load privacy settings
-                document.getElementById('profile-public').checked = userData.profilePublic !== false;
-                document.getElementById('show-contact-info').checked = userData.showContactInfo !== false;
-                document.getElementById('activity-visibility').checked = userData.activityVisibility !== false;
-
-                // Load security settings
-                document.getElementById('two-factor-auth').checked = userData.twoFactorAuth || false;
-
             } catch (error) {
-                console.error('Error loading user profile:', error);
-                showNotification('Error loading profile data. Please try again later.', false);
+                console.error('Error loading profile:', error);
+                showNotification('Failed to load profile data', false);
             }
         }
 
-        // Export user data
-        function exportUserData() {
-            showNotification('Data export feature will be implemented soon.', false);
-        }
+        // Handle profile update
+        async function handleProfileUpdate(e) {
+            e.preventDefault();
 
-        // Clear browsing history
-        function clearBrowsingHistory() {
-            if (confirm('Are you sure you want to clear your browsing history?')) {
-                showNotification('Browsing history cleared successfully!', true);
+            const submitBtn = e.target.querySelector('button[type="submit"]');
+            const originalText = submitBtn.innerHTML;
+
+            try {
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+
+                const formData = {
+                    name: document.getElementById('profile-name').value,
+                    phone: document.getElementById('profile-phone').value,
+                    bio: document.getElementById('profile-bio').value
+                };
+
+                const response = await fetch(`${API_CONFIG.BASE_URL}/api/users/profile`, {
+                    method: 'PUT',
+                    headers: getAuthHeaders(),
+                    body: JSON.stringify(formData)
+                });
+
+                if (response.ok) {
+                    const result = await response.json();
+
+                    // Update localStorage
+                    let user = JSON.parse(localStorage.getItem('currentUser'));
+                    user.name = result.user.name;
+                    user.phone = result.user.phone;
+                    user.bio = result.user.bio;
+                    localStorage.setItem('currentUser', JSON.stringify(user));
+
+                    showNotification('Profile updated successfully!', true);
+                    loadUserProfile();
+                } else {
+                    const error = await response.json();
+                    showNotification(error.message || 'Failed to update profile', false);
+                }
+            } catch (error) {
+                console.error('Error updating profile:', error);
+                showNotification('An error occurred while updating profile', false);
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalText;
             }
         }
 
-        // Manage devices
-        function manageDevices() {
-            showNotification('Device management feature will be implemented soon.', false);
-        }
+        // Handle password change
+        async function handlePasswordChange(e) {
+            e.preventDefault();
 
-        // Delete account
-        function deleteAccount() {
-            if (confirm('Are you sure you want to delete your account? This action cannot be undone and will permanently delete all your data.')) {
-                showNotification('Account deletion feature will be implemented soon.', false);
+            const currentPassword = document.getElementById('current-password').value;
+            const newPassword = document.getElementById('new-password').value;
+            const confirmPassword = document.getElementById('confirm-password').value;
+
+            // Validation
+            if (newPassword.length < 8) {
+                showNotification('Password must be at least 8 characters long', false);
+                return;
+            }
+
+            if (newPassword !== confirmPassword) {
+                showNotification('Passwords do not match', false);
+                return;
+            }
+
+            const submitBtn = e.target.querySelector('button[type="submit"]');
+            const originalText = submitBtn.innerHTML;
+
+            try {
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Updating...';
+
+                const response = await fetch(`${API_CONFIG.BASE_URL}/api/users/change-password`, {
+                    method: 'PUT',
+                    headers: getAuthHeaders(),
+                    body: JSON.stringify({
+                        currentPassword,
+                        newPassword
+                    })
+                });
+
+                if (response.ok) {
+                    showNotification('Password updated successfully!', true);
+                    e.target.reset();
+                } else {
+                    const error = await response.json();
+                    showNotification(error.message || 'Failed to update password', false);
+                }
+            } catch (error) {
+                console.error('Error changing password:', error);
+                showNotification('An error occurred while changing password', false);
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalText;
             }
         }
 
+        // Load preferences from localStorage
+        function loadPreferences() {
+            const notifPrefs = JSON.parse(localStorage.getItem('notificationPreferences') || '{}');
+            if (notifPrefs.messages !== undefined) document.getElementById('notify-messages').checked = notifPrefs.messages;
+            if (notifPrefs.properties !== undefined) document.getElementById('notify-properties').checked = notifPrefs.properties;
+            if (notifPrefs.saved !== undefined) document.getElementById('notify-saved').checked = notifPrefs.saved;
+            if (notifPrefs.marketing !== undefined) document.getElementById('notify-marketing').checked = notifPrefs.marketing;
+
+            const appPrefs = JSON.parse(localStorage.getItem('appPreferences') || '{}');
+            if (appPrefs.language) document.getElementById('language-select').value = appPrefs.language;
+            if (appPrefs.currency) document.getElementById('currency-select').value = appPrefs.currency;
+            if (appPrefs.showProfile !== undefined) document.getElementById('privacy-profile').checked = appPrefs.showProfile;
+            if (appPrefs.showPhone !== undefined) document.getElementById('privacy-phone').checked = appPrefs.showPhone;
+        }
+
+        // Save notification preferences
+        function saveNotificationPreferences() {
+            const preferences = {
+                messages: document.getElementById('notify-messages').checked,
+                properties: document.getElementById('notify-properties').checked,
+                saved: document.getElementById('notify-saved').checked,
+                marketing: document.getElementById('notify-marketing').checked
+            };
+
+            localStorage.setItem('notificationPreferences', JSON.stringify(preferences));
+            showNotification('Notification preferences saved!', true);
+        }
+
+        // Save app preferences
+        function saveAppPreferences() {
+            const preferences = {
+                language: document.getElementById('language-select').value,
+                currency: document.getElementById('currency-select').value,
+                showProfile: document.getElementById('privacy-profile').checked,
+                showPhone: document.getElementById('privacy-phone').checked
+            };
+
+            localStorage.setItem('appPreferences', JSON.stringify(preferences));
+            showNotification('Preferences saved successfully!', true);
+        }
+
+
+
+        // Security PIN Functions
+        async function setSecurityPin() {
+            const pin = document.getElementById('security-pin').value;
+
+            if (!pin || pin.length < 4) {
+                showNotification('PIN must be at least 4 characters', false);
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_CONFIG.BASE_URL}/api/users/security-pin`, {
+                    method: 'PUT',
+                    headers: getAuthHeaders(),
+                    body: JSON.stringify({ pin })
+                });
+
+                if (response.ok) {
+                    showNotification('Security PIN set successfully!', true);
+                    document.getElementById('security-pin').value = '';
+                } else {
+                    const error = await response.json();
+                    showNotification(error.message || 'Failed to set PIN', false);
+                }
+            } catch (error) {
+                console.error('Error setting PIN:', error);
+                showNotification('An error occurred', false);
+            }
+        }
+
+        // Toggle upload form visibility
+        function toggleUploadForm() {
+            const section = document.getElementById('upload-form-section');
+            const btn = document.getElementById('add-doc-btn');
+            if (section.style.display === 'none') {
+                section.style.display = 'block';
+                btn.innerHTML = '<i class="fas fa-times-circle"></i> Cancel';
+                btn.classList.remove('btn-primary');
+                btn.classList.add('btn-outline-secondary');
+            } else {
+                section.style.display = 'none';
+                btn.innerHTML = '<i class="fas fa-plus-circle"></i> Add Document';
+                btn.classList.remove('btn-outline-secondary');
+                btn.classList.add('btn-primary');
+            }
+        }
+
+        // Document Upload Functions
+        async function handleDocumentUpload(e) {
+            e.preventDefault();
+
+            const fileInput = document.getElementById('document-file');
+            const category = document.getElementById('document-category').value;
+            const description = document.getElementById('document-description').value;
+            const password = document.getElementById('document-password').value;
+
+            if (!fileInput.files[0]) {
+                showNotification('Please select a file', false);
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('document', fileInput.files[0]);
+            formData.append('category', category);
+            formData.append('description', description);
+            if (password) {
+                formData.append('password', password);
+            }
+
+            const submitBtn = e.target.querySelector('button[type="submit"]');
+            const originalText = submitBtn.innerHTML;
+
+            try {
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Uploading...';
+
+                const response = await fetch(`${API_CONFIG.BASE_URL}/api/documents/upload`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': localStorage.getItem('token')
+                    },
+                    body: formData
+                });
+
+                if (response.ok) {
+                    showNotification('Document uploaded successfully!', true);
+                    e.target.reset();
+                    toggleUploadForm(); // Hide the form after success
+                    loadDocuments();
+                } else {
+                    const error = await response.json();
+                    showNotification(error.message || 'Upload failed', false);
+                }
+            } catch (error) {
+                console.error('Error uploading document:', error);
+                showNotification('An error occurred during upload', false);
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalText;
+            }
+        }
+
+        // Load user documents
+        async function loadDocuments() {
+            try {
+                const response = await fetch(`${API_CONFIG.BASE_URL}/api/documents`, {
+                    headers: getAuthHeaders()
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    displayDocuments(data.documents);
+                } else {
+                    document.getElementById('documents-container').innerHTML = '<p class="text-muted">Failed to load documents</p>';
+                }
+            } catch (error) {
+                console.error('Error loading documents:', error);
+                document.getElementById('documents-container').innerHTML = '<p class="text-muted">Error loading documents</p>';
+            }
+        }
+
+        // Display documents
+        function displayDocuments(documents) {
+            const container = document.getElementById('documents-container');
+
+            if (!documents || documents.length === 0) {
+                container.innerHTML = '<p class="text-muted">No documents uploaded yet</p>';
+                return;
+            }
+
+            const categoryIcons = {
+                identity: 'fa-id-card',
+                property: 'fa-home',
+                bank: 'fa-university',
+                other: 'fa-file'
+            };
+
+            const categoryNames = {
+                identity: 'Identity Proof',
+                property: 'Property Document',
+                bank: 'Bank Statement',
+                other: 'Other'
+            };
+
+            container.innerHTML = documents.map(doc => `
+                <div class="document-item" style="background: white; padding: 1rem; border-radius: var(--radius-md); margin-bottom: 0.75rem; border: 1px solid var(--gray-200); display: flex; align-items: center; justify-content: space-between;">
+                    <div style="display: flex; align-items: center; gap: 1rem; flex: 1;">
+                        <div style="width: 40px; height: 40px; background: var(--primary-light); border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: center; color: var(--primary);">
+                            <i class="fas ${categoryIcons[doc.category] || 'fa-file'}"></i>
+                        </div>
+                        <div style="flex: 1;">
+                            <h5 style="margin: 0; font-size: 0.875rem; font-weight: 600;">${doc.originalName}</h5>
+                            <p style="margin: 0; font-size: 0.75rem; color: var(--gray-600);">
+                                ${categoryNames[doc.category]} • ${formatFileSize(doc.size)} • ${new Date(doc.uploadDate).toLocaleDateString()}
+                                ${doc.isPasswordProtected ? ' • <i class="fas fa-lock" style="color: var(--primary);"></i> Protected' : ''}
+                            </p>
+                        </div>
+                    </div>
+                    <div style="display: flex; gap: 0.5rem;">
+                        <button class="btn btn-sm btn-outline-success" onclick="shareDocument('${doc.id}', '${doc.originalName}')" title="Share via Email">
+                            <i class="fas fa-share-alt"></i>
+                        </button>
+                        <button class="btn btn-sm btn-outline-primary" onclick="downloadDocument('${doc.id}', ${doc.isPasswordProtected})" title="Download">
+                            <i class="fas fa-download"></i>
+                        </button>
+                        <button class="btn btn-sm btn-outline-danger" onclick="deleteDocument('${doc.id}')" title="Delete">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Format file size
+        function formatFileSize(bytes) {
+            if (bytes < 1024) return bytes + ' B';
+            if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+            return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+        }
+
+        // Download document
+        async function downloadDocument(docId, isProtected) {
+            let password = '';
+            if (isProtected) {
+                password = prompt('Enter document password:');
+                if (!password) return;
+            }
+
+            try {
+                const url = `${API_CONFIG.BASE_URL}/api/documents/${docId}${password ? '?password=' + encodeURIComponent(password) : ''}`;
+                window.open(url, '_blank');
+            } catch (error) {
+                console.error('Error downloading document:', error);
+                showNotification('Failed to download document', false);
+            }
+        }
+
+        // Delete document
+        async function deleteDocument(docId) {
+            if (!confirm('Are you sure you want to delete this document?')) return;
+
+            try {
+                const response = await fetch(`${API_CONFIG.BASE_URL}/api/documents/${docId}`, {
+                    method: 'DELETE',
+                    headers: getAuthHeaders()
+                });
+
+                if (response.ok) {
+                    showNotification('Document deleted successfully', true);
+                    loadDocuments();
+                } else {
+                    const error = await response.json();
+                    showNotification(error.message || 'Failed to delete document', false);
+                }
+            } catch (error) {
+                console.error('Error deleting document:', error);
+                showNotification('An error occurred', false);
+            }
+        }
+
+        // PIN Verification Functions
+        let pendingNavLink = null;
+
+        async function checkAndShowPinModal(navLink) {
+            pendingNavLink = navLink;
+
+            try {
+                const response = await fetch(`${API_CONFIG.BASE_URL}/api/users/profile`, {
+                    headers: getAuthHeaders()
+                });
+
+                if (response.ok) {
+                    const userData = await response.json();
+
+                    if (!userData.securityPin) {
+                        // No PIN set - show SET PIN mode in modal
+                        showPinModal('set');
+                    } else {
+                        // PIN exists - show VERIFY PIN mode in modal
+                        showPinModal('verify');
+                    }
+                } else {
+                    showNotification('Failed to verify security settings', false);
+                }
+            } catch (error) {
+                console.error('Error checking PIN:', error);
+                showNotification('An error occurred', false);
+            }
+        }
+
+        function showPinModal(mode) {
+            const modal = document.getElementById('pin-modal');
+            const title = document.getElementById('pin-modal-title');
+            const desc = document.getElementById('pin-modal-desc');
+            const verifyForm = document.getElementById('pin-verify-form');
+            const setForm = document.getElementById('pin-set-form');
+            const errorEl = document.getElementById('pin-error');
+
+            errorEl.style.display = 'none';
+
+            if (mode === 'set') {
+                title.textContent = 'Create Security PIN';
+                desc.textContent = 'Set a PIN to protect your documents';
+                verifyForm.style.display = 'none';
+                setForm.style.display = 'block';
+                document.getElementById('pin-new-input').value = '';
+                document.getElementById('pin-confirm-input').value = '';
+            } else {
+                title.textContent = 'Enter Security PIN';
+                desc.textContent = 'Enter your PIN to access documents';
+                verifyForm.style.display = 'block';
+                setForm.style.display = 'none';
+                document.getElementById('pin-input').value = '';
+            }
+
+            modal.style.display = 'flex';
+            setTimeout(() => {
+                if (mode === 'set') {
+                    document.getElementById('pin-new-input').focus();
+                } else {
+                    document.getElementById('pin-input').focus();
+                }
+            }, 100);
+        }
+
+        function closePinModal() {
+            const modal = document.getElementById('pin-modal');
+            modal.style.display = 'none';
+            document.getElementById('pin-error').style.display = 'none';
+            pendingNavLink = null;
+        }
+
+        // Set a new PIN and then open documents
+        async function setNewPinAndAccess(e) {
+            e.preventDefault();
+
+            const newPin = document.getElementById('pin-new-input').value;
+            const confirmPin = document.getElementById('pin-confirm-input').value;
+            const errorEl = document.getElementById('pin-error');
+
+            if (!newPin || newPin.length < 4) {
+                errorEl.textContent = 'PIN must be at least 4 digits';
+                errorEl.style.display = 'block';
+                return;
+            }
+
+            if (newPin !== confirmPin) {
+                errorEl.textContent = 'PINs do not match';
+                errorEl.style.display = 'block';
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_CONFIG.BASE_URL}/api/users/security-pin`, {
+                    method: 'PUT',
+                    headers: getAuthHeaders(),
+                    body: JSON.stringify({ pin: newPin })
+                });
+
+                if (response.ok) {
+                    closePinModal();
+                    if (pendingNavLink) {
+                        activateSection('security', pendingNavLink);
+                    }
+                    showNotification('PIN created! Documents unlocked.', true);
+                } else {
+                    const error = await response.json();
+                    errorEl.textContent = error.message || 'Failed to set PIN';
+                    errorEl.style.display = 'block';
+                }
+            } catch (error) {
+                console.error('Error setting PIN:', error);
+                errorEl.textContent = 'An error occurred';
+                errorEl.style.display = 'block';
+            }
+        }
+
+        // Verify existing PIN
+        async function verifyPinAndAccess(e) {
+            e.preventDefault();
+
+            const pin = document.getElementById('pin-input').value;
+            const errorEl = document.getElementById('pin-error');
+
+            if (!pin) {
+                errorEl.textContent = 'Please enter your PIN';
+                errorEl.style.display = 'block';
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_CONFIG.BASE_URL}/api/users/verify-security-pin`, {
+                    method: 'POST',
+                    headers: getAuthHeaders(),
+                    body: JSON.stringify({ pin })
+                });
+
+                if (response.ok) {
+                    closePinModal();
+                    if (pendingNavLink) {
+                        activateSection('security', pendingNavLink);
+                    }
+                    showNotification('Access granted', true);
+                } else {
+                    const error = await response.json();
+                    errorEl.textContent = error.message || 'Incorrect PIN';
+                    errorEl.style.display = 'block';
+                    document.getElementById('pin-input').value = '';
+                    document.getElementById('pin-input').focus();
+                }
+            } catch (error) {
+                console.error('Error verifying PIN:', error);
+                errorEl.textContent = 'An error occurred';
+                errorEl.style.display = 'block';
+            }
+        }
+
+        function activateSection(sectionName, navLink) {
+            const navLinks = document.querySelectorAll('.settings-nav-link');
+            const sections = document.querySelectorAll('.settings-section');
+
+            navLinks.forEach(l => l.classList.remove('active'));
+            if (navLink) {
+                navLink.classList.add('active');
+            }
+
+            sections.forEach(s => s.classList.remove('active'));
+            document.getElementById(`${sectionName}-section`).classList.add('active');
+
+            // Scroll to top
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        // Close modal when clicking outside
+        window.addEventListener('click', function (e) {
+            const modal = document.getElementById('pin-modal');
+            if (e.target === modal) {
+                closePinModal();
+            }
+        });
+
+        // Document Sharing Function
+        async function shareDocument(docId, docName) {
+            const email = prompt('Enter email address to share this document:');
+            if (!email) return;
+
+            if (!email.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)) {
+                showNotification('Please enter a valid email address', false);
+                return;
+            }
+
+            try {
+                showNotification('Sharing document...', true);
+
+                const response = await fetch(`${API_CONFIG.BASE_URL}/api/documents/${docId}/share`, {
+                    method: 'POST',
+                    headers: getAuthHeaders(),
+                    body: JSON.stringify({ email })
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    showNotification(`Document "${docName}" shared with ${email}`, true);
+                } else {
+                    const error = await response.json();
+                    showNotification(error.message || 'Failed to share document', false);
+                }
+            } catch (error) {
+                console.error('Error sharing document:', error);
+                showNotification('Failed to share document', false);
+            }
+        }
+
+        // Confirm account deletion
+        function confirmDeleteAccount() {
+            if (confirm('Are you absolutely sure you want to delete your account? This action cannot be undone.')) {
+                if (confirm('This will permanently delete all your data, properties, and messages. Continue?')) {
+                    showNotification('Account deletion requires admin approval. Please contact support.', false);
+                }
+            }
+        }
     </script>
 </body>
 

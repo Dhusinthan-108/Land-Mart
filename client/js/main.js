@@ -1,4 +1,6 @@
-
+// Main JavaScript file for Land Mart
+const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+let notificationSocket = null;
 
 function getAuthHeaders() {
     const currentUser = JSON.parse(localStorage.getItem('currentUser'));
@@ -13,7 +15,8 @@ function getAuthHeaders() {
 
 function isAuthenticated() {
     const currentUser = JSON.parse(localStorage.getItem('currentUser'));
-    return !!currentUser;
+    // Verify both user object and token exist
+    return !!(currentUser && currentUser.token);
 }
 
 function handleApiError(error, operation) {
@@ -116,55 +119,56 @@ async function updateSavedPropertiesCount() {
     }
 }
 
-// Update notification badge count
+
+
+// Update notification badge
+// Update notification badge
 async function updateNotificationBadge() {
     try {
         const currentUser = JSON.parse(localStorage.getItem('currentUser'));
         if (!currentUser) return;
 
-        // Use the correct endpoint for conversations
-        // Note: The backend currently doesn't support an efficient unread count, 
-        // using the conversations endpoint to at least verify connectivity without 404s.
-        const url = getApiUrl(API_CONFIG.ENDPOINTS.CONVERSATIONS);
+        console.log('[Main] Updating notification badge...');
+
+        const url = getApiUrl(API_CONFIG.ENDPOINTS.GET_CONVERSATIONS);
         const response = await fetch(url, {
             headers: getAuthHeaders()
         });
 
         if (response.ok) {
             const conversations = await response.json();
-            // We cannot filtering unread messages from conversation objects easily.
-            // So we will just silence the error and maybe show total conversations if we wanted.
-            // For now, removing badge logic to prevent misleading info.
 
-            /* 
-            const unreadCount = messages.filter(m => !m.isRead && m.receiverId._id === currentUser.id).length;
-
-            // Find or create badge in navbar
-            const notificationsLink = document.querySelector('a[href="notifications.html"]');
-            if (notificationsLink) {
-                let badge = notificationsLink.querySelector('.badge');
-                if (unreadCount > 0) {
-                    if (!badge) {
-                        badge = document.createElement('span');
-                        badge.className = 'badge';
-                        badge.style.backgroundColor = 'var(--danger)';
-                        badge.style.color = 'white';
-                        badge.style.borderRadius = '50%';
-                        badge.style.padding = '2px 6px';
-                        badge.style.fontSize = '10px';
-                        badge.style.marginLeft = '5px';
-                        badge.style.verticalAlign = 'middle';
-                        notificationsLink.appendChild(badge);
-                    }
-                    badge.textContent = unreadCount;
-                } else if (badge) {
-                    badge.remove();
-                }
+            // Validate response is array
+            if (!Array.isArray(conversations)) {
+                console.warn('[Main] Expected array of conversations, got:', conversations);
+                return;
             }
-            */
+
+            // Calculate total unread count
+            const unreadCount = conversations.reduce((sum, conv) => {
+                return sum + (parseInt(conv.unreadCount) || 0);
+            }, 0);
+
+            console.log(`[Main] Total unread count: ${unreadCount}`);
+
+            // Update badges
+            const navBadge = document.getElementById('nav-message-badge');
+            const sidebarBadge = document.getElementById('sidebar-message-badge');
+
+            if (navBadge) {
+                navBadge.textContent = unreadCount;
+                navBadge.style.display = unreadCount > 0 ? 'inline-block' : 'none';
+            }
+
+            if (sidebarBadge) {
+                sidebarBadge.textContent = unreadCount;
+                sidebarBadge.style.display = unreadCount > 0 ? 'inline-block' : 'none';
+            }
+        } else {
+            console.error('[Main] Failed to fetch conversations:', response.status);
         }
     } catch (error) {
-        console.error('Error updating notification badge:', error);
+        console.error('[Main] Error updating notification badge:', error);
     }
 }
 
@@ -173,6 +177,9 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Update navigation based on user authentication status
     updateNavigation();
+
+    // Start notification system (Socket.io instead of polling)
+    initNotificationSystem();
 
     // Mobile menu toggle - only initialize if elements exist
     const mobileMenuButton = document.querySelector('.mobile-menu-button');
@@ -187,10 +194,7 @@ document.addEventListener('DOMContentLoaded', function () {
         console.debug('Mobile menu elements not found - using alternative navigation');
     }
 
-    // Update notification badge
-    updateNotificationBadge();
-    // Poll for new notifications every 60 seconds
-    setInterval(updateNotificationBadge, 60000);
+
 
     // Handle registration form submission
     const registerForm = document.getElementById('register-form');
@@ -255,14 +259,7 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    // Handle notifications form submission
-    const notificationsForm = document.getElementById('notifications-form');
-    if (notificationsForm) {
-        notificationsForm.addEventListener('submit', function (e) {
-            e.preventDefault();
-            handleNotificationsUpdate(e);
-        });
-    }
+
 
     // Handle privacy form submission
     const privacyForm = document.getElementById('privacy-form');
@@ -289,9 +286,9 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     // Load user properties on dashboard
-    const dashboardSection = document.querySelector('.dashboard');
+    const dashboardSection = document.querySelector('.dashboard') || document.querySelector('.dashboard-main');
     if (dashboardSection) {
-        loadUserProperties();
+        loadMyProperties();
     }
 
     // Load unified dashboard
@@ -373,8 +370,6 @@ function switchTab(tabName) {
         loadMyProperties();
     } else if (tabName === 'saved-properties') {
         loadSavedProperties();
-    } else if (tabName === 'messages') {
-        loadMessages();
     } else if (tabName === 'settings') {
         loadUserSettings();
     }
@@ -388,6 +383,9 @@ function initializeSettingsNavigation() {
             link.addEventListener('click', function (e) {
                 e.preventDefault();
 
+                const href = this.getAttribute('href');
+                if (!href || href === '#') return; // Skip links without proper href
+
                 // Remove active class from all links and sections
                 navLinks.forEach(l => l.parentElement.classList.remove('active'));
                 document.querySelectorAll('.settings-section').forEach(section => {
@@ -398,8 +396,11 @@ function initializeSettingsNavigation() {
                 this.parentElement.classList.add('active');
 
                 // Show corresponding section
-                const targetId = this.getAttribute('href').substring(1);
-                document.getElementById(targetId).style.display = 'block';
+                const targetId = href.substring(1);
+                const targetEl = document.getElementById(targetId);
+                if (targetEl) {
+                    targetEl.style.display = 'block';
+                }
             });
         });
     }
@@ -468,22 +469,12 @@ async function loadUnifiedDashboard() {
             }
         }
 
-        // 2. Load Message Count (Using conversations endpoint)
-        const messagesUrl = getApiUrl(API_CONFIG.ENDPOINTS.CONVERSATIONS);
-        const messagesResponse = await fetch(messagesUrl, {
-            headers: getAuthHeaders()
-        });
 
-        if (messagesResponse.ok) {
-            const conversations = await messagesResponse.json();
-            const totalMessagesElement = document.getElementById('total-messages');
-            if (totalMessagesElement) {
-                totalMessagesElement.textContent = conversations.length;
-            }
-        }
 
-        // 3. Update Saved Properties Count
+        // 3. Update Saved Properties and My Properties list
         updateSavedPropertiesCount();
+        loadMyProperties();
+        loadSavedProperties();
 
         console.log(`Loaded dashboard for user ${currentUser.name}`);
     } catch (error) {
@@ -492,14 +483,53 @@ async function loadUnifiedDashboard() {
     }
 }
 
+function isPropertyOwner(propertyOwnerId) {
+    const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+    if (!currentUser || !propertyOwnerId) return false;
+    // Compare as strings to handle ObjectId vs String mismatch
+    const currentUserId = currentUser.id || currentUser._id;
+    const ownerId = propertyOwnerId._id || propertyOwnerId;
+    return currentUserId.toString() === ownerId.toString();
+}
+
+// Global debounce capability
+let loadMyPropertiesTimeout = null;
+
 // Load user's properties for the "My Properties" tab
-async function loadMyProperties() {
+async function loadMyProperties(targetContainerId = null) {
+    // Debounce to prevent rapid re-execution
+    if (loadMyPropertiesTimeout) {
+        clearTimeout(loadMyPropertiesTimeout);
+    }
+
+    return new Promise((resolve) => {
+        loadMyPropertiesTimeout = setTimeout(async () => {
+            await executeLoadMyProperties(targetContainerId);
+            resolve();
+        }, 300);
+    });
+}
+
+// Internal function to execute the actual loading logic
+async function executeLoadMyProperties(targetContainerId = null) {
     try {
+        // Get the properties container - prioritize explicit ID, then fallback
+        let container = null;
+        if (targetContainerId) {
+            container = document.getElementById(targetContainerId);
+        }
+
+        if (!container) {
+            container = document.getElementById('listed-properties-container') ||
+                document.getElementById('my-properties-container') ||
+                document.querySelector('#listed-properties-section .properties-grid');
+        }
+
         // Get current user from localStorage
         const currentUser = JSON.parse(localStorage.getItem('currentUser'));
         if (!currentUser) {
             console.log('No user logged in');
-            document.getElementById('my-properties-container').innerHTML = '<p>You must be logged in to view your properties. <a href="login.html">Log in</a></p>';
+            if (container) container.innerHTML = '<p>You must be logged in to view your properties. <a href="login.html">Log in</a></p>';
             return;
         }
 
@@ -508,7 +538,7 @@ async function loadMyProperties() {
         // Validate user ID
         if (!isValidUserId(currentUser.id)) {
             console.error('Invalid user ID for properties:', currentUser.id);
-            document.getElementById('my-properties-container').innerHTML = '<p>Error loading properties: Invalid user ID.</p>';
+            if (container) container.innerHTML = '<p>Error loading properties: Invalid user ID.</p>';
             return;
         }
 
@@ -532,12 +562,8 @@ async function loadMyProperties() {
         const properties = await response.json();
         console.log('Received properties:', properties);
 
-        // Get the properties container
-        // Check for both old and new container IDs
-        const container = document.getElementById('my-properties-container') ||
-            document.querySelector('#listed-properties-section .properties-grid');
         if (!container) {
-            console.error('Could not find my-properties-container or listed-properties-section .properties-grid element');
+            console.error('Could not find listed-properties-container element');
             return;
         }
 
@@ -558,21 +584,37 @@ async function loadMyProperties() {
         // Add each property to the page
         if (properties.length > 0) {
             properties.forEach(property => {
+                // Determine equality explicitly for debugging
+                const ownerId = property.ownerId._id || property.ownerId;
+                const isOwner = isPropertyOwner(ownerId);
+                console.log(`Property ${property._id}: Owner ${ownerId} vs Current ${currentUser.id} -> isOwner: ${isOwner}`);
+
                 const propertyCard = createPropertyCard(property, true);
+
+                // Force styles to ensure interactivity and visibility
+                propertyCard.style.pointerEvents = 'auto';
+                propertyCard.style.opacity = '1';
+                propertyCard.style.position = 'relative';
+
                 container.appendChild(propertyCard);
             });
 
             // Hide the no-properties message if it exists
-            if (noPropertiesMessage) {
-                noPropertiesMessage.style.display = 'none';
+            const msg = container.querySelector('.no-properties-message');
+            if (msg) {
+                msg.style.display = 'none';
             }
         } else {
             // Show the no-properties message if it exists, or add one if it doesn't
-            if (noPropertiesMessage) {
-                noPropertiesMessage.style.display = 'flex';
-                noPropertiesMessage.innerHTML = `
-                    <p>You haven't listed any properties yet.</p>
-                    <a href="add-property.html" class="btn btn-primary">Add Your First Property</a>
+            const msg = container.querySelector('.no-properties-message');
+            if (msg) {
+                msg.style.display = 'flex';
+                msg.innerHTML = `
+                    <div style="text-align: center; padding: 2rem;">
+                        <i class="fas fa-home" style="font-size: 3rem; color: var(--gray-300); margin-bottom: 1rem;"></i>
+                        <p style="font-size: 1.25rem; color: var(--text-secondary); margin-bottom: 1.5rem;">You haven't listed any properties yet.</p>
+                        <a href="add-property.html" class="btn btn-primary">Add Your First Property</a>
+                    </div>
                 `;
             } else {
                 container.innerHTML = '<p>You have not added any properties yet. <a href="add-property.html">Add your first property</a></p>';
@@ -588,8 +630,8 @@ async function loadMyProperties() {
         console.log(`Loaded ${properties.length} properties for user ${currentUser.name}`);
     } catch (error) {
         console.error('Error loading user properties:', error);
-        // Check for both old and new container IDs
-        const container = document.getElementById('my-properties-container') ||
+        const container = document.getElementById('listed-properties-container') ||
+            document.getElementById('my-properties-container') ||
             document.querySelector('#listed-properties-section .properties-grid');
         if (container) {
             container.innerHTML = `<p>Error loading properties: ${error.message}. Please try again later.</p>`;
@@ -716,111 +758,7 @@ async function loadSavedProperties() {
     }
 }
 
-// Load messages for the "Messages" tab
-async function loadMessages() {
-    try {
-        // Get current user from localStorage
-        const currentUser = JSON.parse(localStorage.getItem('currentUser'));
-        if (!currentUser) {
-            console.log('No user logged in');
-            return;
-        }
 
-        // Validate user ID
-        if (!isValidUserId(currentUser.id)) {
-            console.error('Invalid user ID for messages:', currentUser.id);
-            return;
-        }
-
-        // Get the messages container
-        const container = document.getElementById('messages-container');
-        if (!container) return;
-
-        // Determine the correct API base URL
-        const url = getApiUrl(API_CONFIG.ENDPOINTS.CONVERSATIONS);
-
-        console.log('Fetching messages from:', url);
-
-        // Fetch messages for the current user with authentication headers
-        const response = await fetch(url, {
-            method: 'GET',
-            headers: getAuthHeaders()
-        });
-
-        console.log('Messages response status:', response.status);
-
-        if (!response.ok) {
-            throw new Error(`Failed to load messages. Status: ${response.status}`);
-        }
-
-        const conversations = await response.json();
-        console.log('Received conversations:', conversations);
-
-        // Display conversations
-        if (conversations.length === 0) {
-            container.innerHTML = '<p>You have no messages yet. Contact other users to start a conversation.</p>';
-        } else {
-            let html = '<div class="conversations-list">';
-            html += '<h3>Your Conversations</h3>';
-
-            conversations.forEach(conversation => {
-                // Determine the other user in the conversation
-                const otherUserId = conversation.buyerId._id === currentUser.id ? conversation.sellerId._id : conversation.buyerId._id;
-                const otherUserName = conversation.buyerId._id === currentUser.id ? conversation.sellerId.name : conversation.buyerId.name;
-                const otherUserRole = conversation.buyerId._id === currentUser.id ? conversation.sellerId.role : conversation.buyerId.role; // Optional
-
-                // Format last message time
-                const lastMessageDate = new Date(conversation.updatedAt); // Use conversation updated time
-                const now = new Date();
-                const timeDiffMinutes = Math.floor((now - lastMessageDate) / (1000 * 60));
-                const timeDiffHours = Math.floor(timeDiffMinutes / 60);
-                const timeDiffDays = Math.floor(timeDiffHours / 24);
-
-                let timeText;
-                if (timeDiffMinutes < 1) {
-                    timeText = 'Just now';
-                } else if (timeDiffMinutes < 60) {
-                    timeText = `${timeDiffMinutes} min ago`;
-                } else if (timeDiffHours < 24) {
-                    timeText = `${timeDiffHours} hr ago`;
-                } else if (timeDiffDays < 7) {
-                    timeText = `${timeDiffDays} day ago`;
-                } else {
-                    timeText = lastMessageDate.toLocaleDateString();
-                }
-
-                // Truncate last message
-                const lastMsgContent = conversation.lastMessage || 'No messages yet';
-                const truncatedMessage = lastMsgContent.length > 50 ?
-                    lastMsgContent.substring(0, 50) + '...' :
-                    lastMsgContent;
-
-                html += `
-                    <div class="conversation-item">
-                        <div class="conversation-header">
-                            <h4>${otherUserName}</h4>
-                            <span class="time">${timeText}</span>
-                        </div>
-                        <p class="last-message">${truncatedMessage}</p>
-                        ${conversation.propertyId ? `<p class="property-name">Regarding: ${conversation.propertyId.title}</p>` : ''}
-                        <button class="btn-secondary" onclick="openConversation('${conversation._id}')">View Conversation</button>
-                    </div>
-                `;
-            });
-
-            html += '</div>';
-            container.innerHTML = html;
-        }
-
-        console.log(`Loaded messages for user ${currentUser.name}`);
-    } catch (error) {
-        console.error('Error loading messages:', error);
-        const container = document.getElementById('messages-container');
-        if (container) {
-            container.innerHTML = `<p>Error loading messages: ${error.message}. Please try again later.</p>`;
-        }
-    }
-}
 
 // Open a conversation with a specific user
 function openConversation(userId, propertyId) {
@@ -829,8 +767,18 @@ function openConversation(userId, propertyId) {
 }
 
 // Handle property submission
+let isSubmittingProperty = false; // Guard flag to prevent multiple submissions
+
 async function handlePropertySubmission() {
+    // Prevent multiple simultaneous submissions
+    if (isSubmittingProperty) {
+        console.log('[Property] Submission already in progress, ignoring duplicate call');
+        return;
+    }
+
     try {
+        isSubmittingProperty = true;
+
         // Get current user
         const currentUser = JSON.parse(localStorage.getItem('currentUser'));
         if (!currentUser) {
@@ -871,8 +819,15 @@ async function handlePropertySubmission() {
             propertyData.images = propertyImages.map(img => img.dataUrl);
         }
 
-        console.log('Submitting property to:', apiUrl);
-        console.log('Property data:', propertyData);
+        console.log('[Property] Submitting to:', apiUrl);
+        console.log('[Property] Data:', propertyData);
+
+        // Disable submit button
+        const submitBtn = document.querySelector('#property-form button[type="submit"]');
+        if (submitBtn) {
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Submitting...';
+        }
 
         // Send property data to backend with authentication headers
         const response = await fetch(apiUrl, {
@@ -881,7 +836,7 @@ async function handlePropertySubmission() {
             body: JSON.stringify(propertyData)
         });
 
-        console.log('Property submission response status:', response.status);
+        console.log('[Property] Response status:', response.status);
 
         let result;
         const contentType = response.headers.get('content-type');
@@ -899,50 +854,72 @@ async function handlePropertySubmission() {
             showNotification('Property listed successfully!', true);
             // Reset form
             document.getElementById('property-form').reset();
-            // Redirect to dashboard
-            window.location.href = 'unified-dashboard.html';
+            // Clear images
+            if (typeof propertyImages !== 'undefined') {
+                propertyImages = [];
+                const previewContainer = document.getElementById('image-preview-container');
+                if (previewContainer) {
+                    previewContainer.innerHTML = '';
+                }
+            }
+            // Redirect to dashboard after a short delay
+            setTimeout(() => {
+                window.location.href = 'unified-dashboard.html';
+            }, 1500);
         } else {
             if (response.status === 401) {
                 showNotification('Your session has expired. Please log in again.', false);
                 // Clear user data on authentication failure
                 localStorage.removeItem('currentUser');
-                // Optionally redirect to login page
-                // window.location.href = 'login.html';
+                setTimeout(() => {
+                    window.location.href = 'login.html';
+                }, 2000);
             } else {
                 showNotification('Property submission failed: ' + (result.message || 'Unknown error'), false);
             }
         }
     } catch (error) {
-        console.error('Property submission error:', error);
+        console.error('[Property] Submission error:', error);
         showNotification('An error occurred during property submission. Please try again.', false);
+    } finally {
+        // Re-enable submit button
+        const submitBtn = document.querySelector('#property-form button[type="submit"]');
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Submit Property';
+        }
+        // Reset guard flag
+        isSubmittingProperty = false;
     }
 }
 
-// Load all properties for the properties listing page
-async function loadAllProperties() {
+// Load all properties for the properties listing page with pagination support
+async function loadAllProperties(page = 1) {
     try {
-        // Determine the correct API base URL
-        const url = `${API_CONFIG.BASE_URL}/api/properties`;
+        const limit = 12; // Show 12 properties per page
+        const url = `${API_CONFIG.BASE_URL}/api/properties?page=${page}&limit=${limit}`;
 
-        console.log('Fetching all properties from:', url);
+        console.log(`Fetching properties page ${page} from:`, url);
 
-        // Fetch all properties
+        // Show loading state
+        const propertiesContainer = document.querySelector('.properties-list');
+        if (propertiesContainer) {
+            propertiesContainer.innerHTML = '<div class="no-properties-message"><p><i class="fas fa-spinner fa-spin"></i> Loading properties...</p></div>';
+        }
+
+        // Fetch properties
         const response = await fetch(url, {
             method: 'GET',
             headers: getAuthHeaders()
         });
 
-        console.log('All properties response status:', response.status);
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
 
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
+        const data = await response.json();
+        const { properties, pagination } = data;
 
-        const properties = await response.json();
-        console.log('Received all properties:', properties);
+        console.log(`Received ${properties.length} properties of ${pagination.total} total`);
 
-        // Get the properties container
-        const propertiesContainer = document.querySelector('.properties-list');
         if (!propertiesContainer) return;
 
         // Clear existing content
@@ -955,23 +932,100 @@ async function loadAllProperties() {
                 propertiesContainer.appendChild(propertyCard);
             });
         } else {
-            propertiesContainer.innerHTML = '<p>No properties available at the moment.</p>';
+            propertiesContainer.innerHTML = '<div class="no-properties-message"><p>No properties available at the moment.</p></div>';
         }
 
-        // Update results info if element exists
+        // Update results info
         const resultsInfo = document.querySelector('.results-info');
         if (resultsInfo) {
-            resultsInfo.textContent = `${properties.length} properties available`;
+            resultsInfo.textContent = `${pagination.total} properties available`;
         }
 
-        console.log(`Loaded ${properties.length} properties`);
+        // Render pagination controls
+        renderPagination(pagination);
+
+        // Scroll to top of properties section
+        const topBar = document.querySelector('.properties-topbar');
+        if (topBar && page > 1) {
+            topBar.scrollIntoView({ behavior: 'smooth' });
+        }
+
     } catch (error) {
         console.error('Error loading properties:', error);
         const propertiesContainer = document.querySelector('.properties-list');
         if (propertiesContainer) {
-            propertiesContainer.innerHTML = '<p>Error loading properties. Please try again later.</p>';
+            propertiesContainer.innerHTML = '<div class="no-properties-message"><p>Error loading properties. Please try again later.</p></div>';
         }
     }
+}
+
+// Function to render pagination controls
+function renderPagination(pagination) {
+    const paginationContainer = document.querySelector('.pagination-container');
+    if (!paginationContainer) return;
+
+    const { page, pages, total } = pagination;
+
+    // If only one page, hide pagination but keep container for spacing
+    if (pages <= 1) {
+        paginationContainer.style.display = 'none';
+        return;
+    }
+
+    paginationContainer.style.display = 'block';
+
+    let paginationHtml = `
+        <nav aria-label="Properties pagination">
+            <ul class="pagination">
+                <li class="page-item ${page === 1 ? 'disabled' : ''}">
+                    <a class="page-link" href="#" onclick="event.preventDefault(); ${page === 1 ? '' : `loadAllProperties(${page - 1})`}" ${page === 1 ? 'tabindex="-1" aria-disabled="true"' : ''}>Previous</a>
+                </li>
+    `;
+
+    // Always show first page
+    paginationHtml += `
+        <li class="page-item ${page === 1 ? 'active' : ''}">
+            <a class="page-link" href="#" onclick="event.preventDefault(); loadAllProperties(1)">1</a>
+        </li>
+    `;
+
+    // Show ellipsis if needed
+    if (page > 3) {
+        paginationHtml += '<li class="page-item disabled"><span class="page-link">...</span></li>';
+    }
+
+    // Show pages around current page
+    for (let i = Math.max(2, page - 1); i <= Math.min(pages - 1, page + 1); i++) {
+        paginationHtml += `
+            <li class="page-item ${i === page ? 'active' : ''}">
+                <a class="page-link" href="#" onclick="event.preventDefault(); loadAllProperties(${i})">${i}</a>
+            </li>
+        `;
+    }
+
+    // Show ellipsis if needed
+    if (page < pages - 2) {
+        paginationHtml += '<li class="page-item disabled"><span class="page-link">...</span></li>';
+    }
+
+    // Always show last page
+    if (pages > 1) {
+        paginationHtml += `
+            <li class="page-item ${page === pages ? 'active' : ''}">
+                <a class="page-link" href="#" onclick="event.preventDefault(); loadAllProperties(${pages})">${pages}</a>
+            </li>
+        `;
+    }
+
+    paginationHtml += `
+                <li class="page-item ${page === pages ? 'disabled' : ''}">
+                    <a class="page-link" href="#" onclick="event.preventDefault(); ${page === pages ? '' : `loadAllProperties(${page + 1})`}" ${page === pages ? 'tabindex="-1" aria-disabled="true"' : ''}>Next</a>
+                </li>
+            </ul>
+        </nav>
+    `;
+
+    paginationContainer.innerHTML = paginationHtml;
 }
 
 // Create a property card element
@@ -997,42 +1051,63 @@ function createPropertyCard(property, isMyPropertiesView = false) {
 
     if (isMyPropertiesView && isOwner) {
         // For my properties view, show both edit and remove buttons
+        // Use global functions or direct hrefs where possible
         propertyActions = `
-            <button class="btn-secondary edit-btn" onclick="window.location.href='edit-property.html?id=${property._id}'">Edit Property</button>
-            <button class="btn-danger remove-btn" onclick="removeProperty('${property._id}')">Remove Property</button>`;
+            <button class="btn btn-outline btn-sm edit-btn" onclick="window.location.href='edit-property.html?id=${property._id}'">
+                <i class="fas fa-edit"></i> Edit
+            </button>
+            <button class="btn btn-danger btn-sm remove-btn" onclick="window.removeProperty('${property._id}')">
+                <i class="fas fa-trash"></i> Remove
+            </button>`;
     } else {
-        propertyActions = `<button class="save-btn" data-property-id="${property._id}">Save Property</button>`;
         // Only show message button if logged in and not the owner
         const currentUser = JSON.parse(localStorage.getItem('currentUser'));
         if (currentUser && ownerId && ownerId !== currentUser.id) {
-            propertyActions += `<button class="btn-outline message-btn" onclick="window.location.href='messages.html?userId=${ownerId}&propertyId=${property._id}'" style="margin-left: 10px; padding: 5px 10px; font-size: 0.9rem;"><i class="fas fa-envelope"></i> Message</button>`;
+            propertyActions += `<button class="btn btn-outline btn-sm message-btn" onclick="window.location.href='messages.html?userId=${ownerId}&propertyId=${property._id}'">
+                <i class="fas fa-envelope"></i> Message
+            </button>`;
         }
+    }
+
+    // Simplified SVG placeholder
+    const placeholderImage = 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80';
+
+    // Check if image exists and is valid
+    let imageUrl = placeholderImage;
+    if (property.images && property.images.length > 0 && property.images[0]) {
+        imageUrl = property.images[0];
     }
 
     card.innerHTML = `
         <div class="property-image">
-            <img src="${property.images && property.images.length > 0 ? property.images[0] : 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAwIiBoZWlnaHQ9IjQwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZGRkIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIyNCIgZmlsbD0iIzk5OSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPkltYWdlIE5vdCBGb3VuZDwvdGV4dD48L3N2Zz4='}" alt="${property.title}">
+            <img src="${imageUrl}" alt="${property.title}" onerror="this.onerror=null; this.src='${placeholderImage}';">
+            <button class="save-btn" data-property-id="${property._id}"><i class="far fa-heart"></i></button>
         </div>
-        <div class="property-info">
-            <h3>${property.title}</h3>
-            <p class="location">${property.location}</p>
-            <p class="price">${formattedPrice}</p>
-            <div class="property-details">
-                <span class="detail"><strong>Size:</strong> ${formattedSize} sq.ft</span>
-                <span class="detail"><strong>Terrain:</strong> ${property.terrain.replace('_', ' ')}</span>
-                <span class="detail"><strong>Status:</strong> ${property.status.replace('_', ' ')}</span>
+        <div class="property-info" style="padding: 1.5rem;">
+            <p class="property-location"><i class="fas fa-map-marker-alt"></i> ${property.location}</p>
+            <h3 style="margin-bottom: 0.5rem; font-size: 1.25rem;">${property.title}</h3>
+            <p class="property-price">${formattedPrice}</p>
+            <div class="property-meta">
+                <span class="meta-item"><i class="fas fa-ruler-combined"></i> ${formattedSize} sq.ft</span>
+                <span class="meta-item"><i class="fas fa-mountain"></i> ${property.terrain ? property.terrain.replace('_', ' ') : 'Land'}</span>
             </div>
-            <div class="property-actions">
-                <button class="btn-primary" onclick="window.location.href='property-detail.html?id=${property._id}'">View Details</button>
-                ${propertyActions}
+            <div class="property-actions-container" style="margin-top: auto; padding-top: 1.25rem;">
+                <!-- View Details Button (Always Full Width) -->
+                <button class="btn btn-primary" style="width: 100%; margin-bottom: 0.5rem;" onclick="window.location.href='property-detail.html?id=${property._id}'">
+                    View Details
+                </button>
+                
+                <!-- Action Buttons (Grid Layout) -->
+                ${propertyActions ? `<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">${propertyActions}</div>` : ''}
             </div>
         </div>
     `;
 
-    // Add event listener for save button (only if it exists)
+    // Add event listener for save button
     const saveButton = card.querySelector('.save-btn');
     if (saveButton) {
-        saveButton.addEventListener('click', function () {
+        saveButton.addEventListener('click', function (e) {
+            e.stopPropagation();
             toggleSavePropertyFromCard(property._id, this);
         });
     }
@@ -1059,27 +1134,30 @@ function createSavedPropertyCard(property) {
     card.innerHTML = `
         <div class="property-image">
             <img src="${property.images && property.images.length > 0 ? property.images[0] : 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAwIiBoZWlnaHQ9IjQwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZGRkIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIyNCIgZmlsbD0iIzk5OSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPkltYWdlIE5vdCBGb3VuZDwvdGV4dD48L3N2Zz4='}" alt="${property.title}">
+            <button class="save-btn saved" data-property-id="${property._id}"><i class="fas fa-heart"></i></button>
         </div>
-        <div class="property-info">
-            <h3>${property.title}</h3>
-            <p class="location">${property.location}</p>
-            <p class="price">${formattedPrice}</p>
-            <div class="property-details">
-                <span class="detail"><strong>Size:</strong> ${formattedSize} sq.ft</span>
-                <span class="detail"><strong>Terrain:</strong> ${property.terrain.replace('_', ' ')}</span>
-                <span class="detail"><strong>Status:</strong> ${property.status.replace('_', ' ')}</span>
+        <div class="property-info" style="padding: 1.5rem;">
+            <p class="property-location"><i class="fas fa-map-marker-alt"></i> ${property.location}</p>
+            <h3 style="margin-bottom: 0.5rem; font-size: 1.25rem;">${property.title}</h3>
+            <p class="property-price">${formattedPrice}</p>
+            <div class="property-meta">
+                <span class="meta-item"><i class="fas fa-ruler-combined"></i> ${formattedSize} sq.ft</span>
+                <span class="meta-item"><i class="fas fa-mountain"></i> ${property.terrain.replace('_', ' ')}</span>
             </div>
-            <div class="property-actions">
-                <button class="btn-primary" onclick="window.location.href='property-detail.html?id=${property._id}'">View Details</button>
-                <button class="save-btn saved" data-property-id="${property._id}">Unsave Property</button>
+            <div class="property-actions" style="display: flex; gap: 0.75rem; margin-top: 1.25rem;">
+                <button class="btn btn-primary flex-1" onclick="window.location.href='property-detail.html?id=${property._id}'">View Details</button>
+                <button class="btn btn-outline btn-sm" onclick="window.location.href='messages.html?userId=${property.ownerId?._id || property.ownerId}&propertyId=${property._id}'">
+                    <i class="fas fa-envelope"></i> Message
+                </button>
             </div>
         </div>
     `;
 
-    // Add event listener for unsave button (only if it exists)
+    // Add event listener for unsave button
     const saveButton = card.querySelector('.save-btn');
     if (saveButton) {
-        saveButton.addEventListener('click', function () {
+        saveButton.addEventListener('click', function (e) {
+            e.stopPropagation();
             toggleSavePropertyFromCard(property._id, this);
         });
     }
@@ -1250,7 +1328,7 @@ async function loadUserSettings() {
         }
 
         // Determine the correct API base URL
-        const url = `${API_CONFIG.BASE_URL}/api/users/${currentUser.id}`;
+        const url = `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.GET_USER}`;
 
         console.log('Fetching user settings from:', url);
 
@@ -1316,98 +1394,71 @@ async function handleProfileUpdate(event) {
         // Get current user from localStorage
         let currentUser = JSON.parse(localStorage.getItem('currentUser'));
         if (!currentUser) {
-            alert('You must be logged in to update settings.');
+            showNotification('You must be logged in to update settings.', false);
             return;
         }
 
-        // Validate user ID
-        if (!isValidUserId(currentUser.id)) {
-            console.error('Invalid user ID for profile update:', currentUser.id);
-            alert('Error updating profile: Invalid user ID.');
+        // Get form values
+        const name = document.getElementById('settings-full-name').value;
+        const phone = document.getElementById('settings-phone').value;
+        const bio = document.getElementById('settings-bio').value;
+
+        if (!name || !phone) {
+            showNotification('Name and phone are required.', false);
             return;
         }
-
-        // Get form values with null checks
-        const fullNameElement = document.getElementById('settings-full-name');
-        const emailElement = document.getElementById('settings-email');
-        const phoneElement = document.getElementById('settings-phone');
-        const bioElement = document.getElementById('settings-bio');
-
-        // Check if all elements exist before accessing their values
-        if (!fullNameElement || !emailElement || !phoneElement || !bioElement) {
-            console.error('One or more profile form elements not found');
-            alert('Profile form elements not found. Please try again.');
-            return;
-        }
-
-        const fullName = fullNameElement.value;
-        const email = emailElement.value;
-        const phone = phoneElement.value;
-        const bio = bioElement.value;
 
         // Prepare data for API
-        const userData = {
-            name: fullName,
-            email: email,
-            phone: phone,
-            bio: bio
-        };
+        const updateData = { name, phone, bio };
 
-        // Determine the correct API base URL
-        const apiUrl = `${API_CONFIG.BASE_URL}/api/users/${currentUser.id}`;
-
-        console.log('Updating user profile at:', apiUrl);
-        console.log('User data:', userData);
+        // Use the profile endpoint which uses the token
+        const apiUrl = `${API_CONFIG.BASE_URL}/api/users/profile`;
 
         // Send update data to backend with authentication headers
         const response = await fetch(apiUrl, {
             method: 'PUT',
             headers: getAuthHeaders(),
-            body: JSON.stringify(userData)
+            body: JSON.stringify(updateData)
         });
 
-        console.log('Profile update response status:', response.status);
-
-        let result;
-        const contentType = response.headers.get('content-type');
-
-        // Check if response has JSON content
-        if (contentType && contentType.includes('application/json')) {
-            result = await response.json();
-        } else {
-            // If not JSON, try to get text content
-            const text = await response.text();
-            result = { message: text || 'Profile update completed' };
-        }
+        const result = await response.json();
 
         if (response.ok) {
-            // Update user data in localStorage with the response from server
-            const updatedUser = {
-                id: result._id,
-                name: result.name,
-                email: result.email,
-                role: result.role,
-                phone: result.phone,
-                bio: result.bio
-            };
+            // Update user data in localStorage while PRESERVING the token
+            currentUser.name = result.user.name;
+            currentUser.phone = result.user.phone;
+            currentUser.bio = result.user.bio;
 
-            localStorage.setItem('currentUser', JSON.stringify(updatedUser));
+            localStorage.setItem('currentUser', JSON.stringify(currentUser));
 
-            // Update user info in the dashboard header
+            // Update user name displays across the page
+            updateWelcomeName(result.user.name);
+
             const userNameElement = document.getElementById('user-name');
             if (userNameElement) {
-                userNameElement.textContent = result.name;
+                userNameElement.textContent = result.user.name;
             }
 
             showNotification('Profile updated successfully!', true);
 
-            console.log('User profile updated');
+            // If updateNavigation exists, call it to refresh header UI
+            if (typeof updateNavigation === 'function') {
+                updateNavigation();
+            }
         } else {
-            showNotification('Profile update failed: ' + (result.message || 'Unknown error'), false);
+            showNotification(result.message || 'Error updating profile.', false);
         }
     } catch (error) {
         console.error('Error updating profile:', error);
-        showNotification('An error occurred while updating your profile. Please try again.', false);
+        showNotification('An error occurred while updating your profile.', false);
+    }
+}
+
+// Helper to update welcome name if it exists (e.g. on dashboard)
+function updateWelcomeName(name) {
+    const welcomeElement = document.getElementById('welcome-name');
+    if (welcomeElement) {
+        welcomeElement.innerHTML = `Welcome back, ${name}! 👋`;
     }
 }
 
@@ -1450,105 +1501,43 @@ function handleAppSettingsUpdate(event) {
     console.log('App settings updated:', appSettings);
 }
 
-// Handle notifications form submission
-function handleNotificationsUpdate(event) {
-    event.preventDefault();
 
-    // Get form elements with null checks
-    const emailNotificationsElement = document.querySelector('input[name="email-notifications"]');
-    const smsNotificationsElement = document.querySelector('input[name="sms-notifications"]');
-    const propertyUpdatesElement = document.querySelector('input[name="property-updates"]');
-    const messageNotificationsElement = document.querySelector('input[name="message-notifications"]');
-    const marketingEmailsElement = document.querySelector('input[name="marketing-emails"]');
-
-    // Check if all elements exist
-    if (!emailNotificationsElement || !smsNotificationsElement || !propertyUpdatesElement ||
-        !messageNotificationsElement || !marketingEmailsElement) {
-        console.error('One or more notifications form elements not found');
-        showNotification('Notifications form elements not found. Please try again.', false);
-        return;
-    }
-
-    // Get form values
-    const emailNotifications = emailNotificationsElement.checked;
-    const smsNotifications = smsNotificationsElement.checked;
-    const propertyUpdates = propertyUpdatesElement.checked;
-    const messageNotifications = messageNotificationsElement.checked;
-    const marketingEmails = marketingEmailsElement.checked;
-
-    // Correctly send settings to backend
-    const notificationSettings = {
-        emailNotifications: emailNotifications,
-        messageNotifications: messageNotifications,
-        propertyUpdates: propertyUpdates
-    };
-
-    const currentUser = JSON.parse(localStorage.getItem('currentUser'));
-    if (!currentUser) return;
-
-    fetch(`${API_CONFIG.BASE_URL}/api/users/notifications`, {
-        method: 'PUT',
-        headers: getAuthHeaders(),
-        body: JSON.stringify(notificationSettings)
-    }).then(response => {
-        if (response.ok) {
-            localStorage.setItem('notificationSettings', JSON.stringify(notificationSettings));
-            showNotification('Notification preferences saved successfully!', true);
-        } else {
-            showNotification('Failed to save preferences to server', false);
-        }
-    }).catch(error => {
-        console.error('Error updating notifications:', error);
-        showNotification('An error occurred while saving notifications', false);
-    });
-}
 
 // Handle privacy form submission
-function handlePrivacyUpdate(event) {
+async function handlePrivacyUpdate(event) {
     event.preventDefault();
 
-    // Get form elements with null checks
+    // Get form elements
     const profilePublicElement = document.getElementById('profile-public');
     const showContactInfoElement = document.getElementById('show-contact-info');
     const activityVisibilityElement = document.getElementById('activity-visibility');
 
-    // Check if all elements exist
     if (!profilePublicElement || !showContactInfoElement || !activityVisibilityElement) {
-        console.error('One or more privacy form elements not found');
-        showNotification('Privacy form elements not found. Please try again.', false);
-        return;
+        console.warn('One or more privacy elements not found');
     }
 
-    // Get form values
-    const profilePublic = profilePublicElement.checked;
-    const showContactInfo = showContactInfoElement.checked;
-    const activityVisibility = activityVisibilityElement.checked;
-
-    // Correctly send settings to backend
     const privacySettings = {
-        profilePublic: profilePublic,
-        showContactInfo: showContactInfo,
-        activityVisibility: activityVisibility
+        profilePublic: profilePublicElement ? profilePublicElement.checked : undefined,
+        showContactInfo: showContactInfoElement ? showContactInfoElement.checked : undefined,
+        activityVisibility: activityVisibilityElement ? activityVisibilityElement.checked : undefined
     };
 
-    const currentUser = JSON.parse(localStorage.getItem('currentUser'));
-    if (!currentUser) return;
+    try {
+        const response = await fetch(`${API_CONFIG.BASE_URL}/api/users/privacy`, {
+            method: 'PUT',
+            headers: getAuthHeaders(),
+            body: JSON.stringify(privacySettings)
+        });
 
-    fetch(`${API_CONFIG.BASE_URL}/api/users/privacy`, {
-        method: 'PUT',
-        headers: getAuthHeaders(),
-        body: JSON.stringify(privacySettings)
-    }).then(response => {
         if (response.ok) {
-            localStorage.setItem('privacySettings', JSON.stringify(privacySettings));
-            showNotification('Privacy settings saved successfully!', true);
+            showNotification('Privacy settings updated successfully!', true);
         } else {
-            showNotification('Failed to save privacy settings to server', false);
+            showNotification('Failed to update privacy settings', false);
         }
-    }).catch(error => {
-        console.error('Error updating privacy:', error);
-        showNotification('An error occurred while saving privacy settings', false);
-    });
+    } catch (error) {
+        console.error('Error updating privacy settings:', error);
+        showNotification('An error occurred while updating privacy settings', false);
+    }
 }
 
 // Handle security form submission (password update)
@@ -1889,8 +1878,12 @@ function handleSecurityUpdate(event) {
 }
 
 // Handle property removal
-async function removeProperty(propertyId) {
+// Handle property removal
+// Make available globally
+window.removeProperty = async function (propertyId) {
     try {
+        console.log('[Main] removeProperty called for ID:', propertyId);
+
         // Confirm with user before deleting
         if (!confirm('Are you sure you want to remove this property? This action cannot be undone.')) {
             return;
@@ -1910,10 +1903,22 @@ async function removeProperty(propertyId) {
             return;
         }
 
-        // Determine the correct API base URL
-        const url = `${API_CONFIG.BASE_URL}/api/properties/${propertyId}`;
+        // Trim property ID just in case
+        const cleanPropertyId = propertyId.trim();
 
-        console.log('Removing property at:', url);
+        // Determine the correct API base URL
+        const url = `${API_CONFIG.BASE_URL}/api/properties/${cleanPropertyId}`;
+
+        console.log('Removing property at:', url, 'Original ID:', propertyId);
+
+        // Show loading state
+        const buttons = document.querySelectorAll(`.property-actions button[onclick*="'${propertyId}'"]`);
+        buttons.forEach(btn => {
+            if (btn.classList.contains('remove-btn') || btn.textContent.includes('Remove')) {
+                btn.disabled = true;
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Removing...';
+            }
+        });
 
         // Send delete request to backend
         const response = await fetch(url, {
@@ -1924,22 +1929,25 @@ async function removeProperty(propertyId) {
         console.log('Property removal response status:', response.status);
 
         if (response.ok) {
+            showNotification('Property removed successfully!', true);
+
             // Remove the property card from the UI
             // Find the button that triggered this function and traverse to the card
-            const buttons = document.querySelectorAll(`.property-actions button[onclick*="'${propertyId}'"]`);
             let propertyCard = null;
 
             // Loop through buttons to find the one in the "Remove" button
-            for (let button of buttons) {
-                if (button.classList.contains('remove-btn') || button.textContent.includes('Remove')) {
+            // We re-query because we might have modified them above
+            const updatedButtons = document.querySelectorAll(`.property-actions button[onclick*="'${propertyId}'"]`);
+            for (let button of updatedButtons) {
+                if (button.classList.contains('remove-btn') || button.textContent.includes('Remove') || button.disabled) {
                     propertyCard = button.closest('.property-card');
                     break;
                 }
             }
 
-            // Fallback: if we couldn't find by class, try the first one
-            if (!propertyCard && buttons.length > 0) {
-                propertyCard = buttons[0].closest('.property-card');
+            // Allow finding by data attribute as fallback
+            if (!propertyCard) {
+                propertyCard = document.querySelector(`.property-card[data-property-id="${propertyId}"]`);
             }
 
             if (propertyCard) {
@@ -1955,19 +1963,43 @@ async function removeProperty(propertyId) {
                     if (container && container.children.length === 0) {
                         container.innerHTML = '<p>You have not added any properties yet. <a href="add-property.html">Add your first property</a></p>';
                     }
+
+                    // Update stats if needed
+                    const totalPropEl = document.getElementById('total-properties');
+                    if (totalPropEl) {
+                        const currentCount = parseInt(totalPropEl.textContent) || 0;
+                        if (currentCount > 0) totalPropEl.textContent = currentCount - 1;
+                    }
                 }, 300);
             }
 
             console.log(`Property ${propertyId} removed successfully`);
         } else {
             const errorData = await response.json();
-            showNotification('Error removing property: ' + errorData.message, false);
+            showNotification('Error removing property: ' + (errorData.message || 'Unknown error'), false);
+
+            // Reset buttons
+            buttons.forEach(btn => {
+                if (btn.classList.contains('remove-btn') || btn.textContent.includes('Remove')) {
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="fas fa-trash"></i> Remove';
+                }
+            });
         }
     } catch (error) {
         console.error('Error removing property:', error);
-        showNotification('An error occurred while removing the property. Please try again.', false);
+        showNotification('An error occurred while removing the property: ' + error.message, false);
+
+        // Reset buttons
+        const buttons = document.querySelectorAll(`.property-actions button[onclick*="'${propertyId}'"]`);
+        buttons.forEach(btn => {
+            if (btn.classList.contains('remove-btn') || btn.textContent.includes('Remove')) {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-trash"></i> Remove';
+            }
+        });
     }
-}
+};
 
 // Handle registration form submission
 async function handleRegistration() {
@@ -2053,6 +2085,9 @@ async function handleRegistration() {
 
 // Handle login form submission
 async function handleLogin() {
+    const loginBtn = document.querySelector('.btn-signin');
+    const originalBtnText = loginBtn ? loginBtn.innerHTML : 'Sign In';
+
     try {
         // Get form values with proper element IDs
         const email = document.getElementById('email') ? document.getElementById('email').value : '';
@@ -2067,6 +2102,18 @@ async function handleLogin() {
             return;
         }
 
+        // Show loading state
+        if (loginBtn) {
+            loginBtn.disabled = true;
+            loginBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Signing in...';
+        }
+
+        // Hide error container
+        const errorContainer = document.getElementById('login-error');
+        if (errorContainer) {
+            errorContainer.style.display = 'none';
+        }
+
         // Prepare data for API
         const loginData = {
             email: email,
@@ -2077,7 +2124,6 @@ async function handleLogin() {
         const apiUrl = getApiUrl(API_CONFIG.ENDPOINTS.LOGIN);
 
         console.log('Logging in at:', apiUrl);
-        console.log('Login data being sent:', loginData);
 
         // Send login data to backend
         const response = await fetch(apiUrl, {
@@ -2093,73 +2139,70 @@ async function handleLogin() {
         let result;
         const contentType = response.headers.get('content-type');
 
-        // Check if response has JSON content
         if (contentType && contentType.includes('application/json')) {
             result = await response.json();
-            console.log('Login response data:', result);
         } else {
-            // If not JSON, try to get text content
             const text = await response.text();
             result = { message: text || 'Login completed' };
-            console.log('Login response text:', text);
         }
 
         if (response.ok) {
             console.log('=== LOGIN SUCCESSFUL ===');
-            console.log('Received user data from backend:', result.user);
 
             // Validate user data
             if (!result.user || !result.user.id) {
-                console.error('❌ CRITICAL: Invalid user data received from server:', result);
-                showNotification('Login failed: Invalid user data received', false);
+                console.error('❌ Invalid user data received');
+                showNotification('Login failed: Invalid data from server', false);
+                if (loginBtn) {
+                    loginBtn.disabled = false;
+                    loginBtn.innerHTML = originalBtnText;
+                }
                 return;
             }
 
-            // Log the exact user ID received from backend
-            console.log('✅ Backend returned User ID:', result.user.id);
-            console.log('User details - Name:', result.user.name, '| Email:', result.user.email, '| Role:', result.user.role);
+            // Clear any old session data first
+            localStorage.removeItem('currentUser');
 
-            // Store user data in localStorage with simulated token
+            // Store user data
             const userData = {
                 id: result.user.id,
                 name: result.user.name,
                 email: result.user.email,
-                role: result.user.role, // This will be undefined if not provided by backend
-                // In a real app, this would be a JWT token from the backend
+                role: result.user.role,
                 token: `simulated-token-${result.user.id}-${Date.now()}`
             };
 
-            console.log('📦 Storing user data in localStorage:', userData);
-            console.log('User ID being stored:', userData.id);
+            console.log('Session initialized with token:', userData.token.substring(0, 20) + '...');
             localStorage.setItem('currentUser', JSON.stringify(userData));
+            showNotification('Login successful! Redirecting...', true);
 
-            // Verify what was actually stored
-            const storedData = JSON.parse(localStorage.getItem('currentUser'));
-            console.log('✅ Verified stored data in localStorage:', storedData);
-            console.log('Stored User ID matches backend:', storedData.id === result.user.id);
-
-            showNotification('Login successful!', true);
-            // Reset form
-            if (document.getElementById('login-form')) {
-                document.getElementById('login-form').reset();
-            }
-            // Redirect to dashboard
-            window.location.href = 'unified-dashboard.html';
+            // Redirect after a small delay
+            setTimeout(() => {
+                window.location.href = 'unified-dashboard.html';
+            }, 800);
         } else {
-            console.log('Login failed with message:', result.message);
-            // Display error in the login form error container
-            const errorContainer = document.getElementById('login-error');
             if (errorContainer) {
                 errorContainer.textContent = result.message || 'Invalid email or password';
                 errorContainer.style.display = 'block';
             } else {
-                // Fallback to notification
                 showNotification('Login failed: ' + (result.message || 'Invalid email or password'), false);
+            }
+
+            // Reset button
+            if (loginBtn) {
+                loginBtn.disabled = false;
+                loginBtn.innerHTML = originalBtnText;
             }
         }
     } catch (error) {
         console.error('Login error:', error);
         showNotification('An error occurred during login. Please try again.', false);
+
+        // Reset button
+        if (loginBtn) {
+            loginBtn.disabled = false;
+            loginBtn.innerHTML = originalBtnText;
+        }
     }
 }
 
@@ -2251,4 +2294,48 @@ function showNotification(message, isSuccess = true) {
     setTimeout(() => {
         notification.remove();
     }, 3000);
+}
+
+// Initialize notification system
+async function initNotificationSystem() {
+    if (!isAuthenticated()) return;
+
+    // Initial badge update
+    updateNotificationBadge();
+
+    // Initialize socket for notifications if safe
+    if (typeof io === 'undefined') {
+        console.warn('[Main] Socket.io not found, falling back to one-time update.');
+        return;
+    }
+
+    // prevent duplicate initialization
+    if (notificationSocket) return;
+
+    // Use existing global socket if available (from messages.js)
+    if (typeof socket !== 'undefined' && socket) {
+        notificationSocket = socket;
+    } else {
+        notificationSocket = io();
+    }
+
+    notificationSocket.on('connect', () => {
+        console.log('[Main] Global notification socket connected');
+        if (currentUser && currentUser.id) {
+            notificationSocket.emit('join_user', currentUser.id);
+        }
+    });
+
+    notificationSocket.on('receive_message', (message) => {
+        console.log('[Main] New message notification received');
+        updateNotificationBadge();
+    });
+
+    notificationSocket.on('messages_read', () => {
+        updateNotificationBadge();
+    });
+
+    notificationSocket.on('connect_error', (err) => {
+        console.debug('[Main] Notification socket error:', err.message);
+    });
 }

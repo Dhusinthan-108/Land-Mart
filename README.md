@@ -35,13 +35,37 @@ Land Mart is a comprehensive online marketplace platform that allows users to bu
 
 ## Technology Stack
 
-- **Frontend**: HTML, CSS, JavaScript
-- **Backend**: Node.js, Express.js
-- **Database**: MongoDB with Mongoose ODM
-- **Authentication**: JWT (JSON Web Tokens)
-- **Environment Management**: dotenv
-- **CORS Handling**: cors package
-- **Development**: nodemon
+### Frontend
+- **HTML5 & CSS3**: Semantic structure and modern styling.
+- **JavaScript (ES6+)**: Core client-side logic.
+- **Socket.io Client**: Real-time bidirectional event-based communication.
+- **FontAwesome**: Iconography.
+
+### Backend
+- **Node.js**: JavaScript runtime environment.
+- **Express.js**: Web application framework.
+- **Socket.io**: Real-time server-side communication.
+- **Multer**: Middleware for handling `multipart/form-data` (image uploads).
+
+### Database
+- **MongoDB**: NoSQL database for flexible data storage.
+- **Mongoose**: Object Data Modeling (ODM) library for MongoDB and Node.js.
+
+### Authentication & Security
+- **JWT (JSON Web Tokens)**: Secure user authentication.
+- **bcryptjs**: Password hashing for security.
+- **cors**: Cross-Origin Resource Sharing handling.
+- **dotenv**: Environment variable management.
+
+## Deployment
+
+For detailed instructions on how to deploy this application to production usage (e.g., using Render and MongoDB Atlas), please refer to the [Deployment Guide](DEPLOYMENT.md).
+
+### Quick Start (Production)
+```bash
+npm start
+```
+The application will run with `NODE_ENV=production` optimizations.
 
 ## Prerequisites
 

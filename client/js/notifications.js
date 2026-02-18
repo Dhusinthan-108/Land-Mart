@@ -61,16 +61,20 @@ function showNotification(message, isSuccess = true) {
 // Load real notifications (Messages + Property Updates)
 async function loadNotifications(filter = 'all') {
     const container = document.getElementById('notifications-container');
-    if (!container) return;
+    // If we're on a page with a bell icon but no container, we still want to fetch counts
+    // but skip rendering the list
+    const hasContainer = !!container;
 
     try {
         const currentUser = JSON.parse(localStorage.getItem('currentUser'));
         if (!currentUser) return;
 
-        container.innerHTML = '<div class="text-center p-5"><i class="fas fa-spinner fa-spin fa-2x"></i><p class="mt-2">Loading notifications...</p></div>';
+        if (hasContainer) {
+            container.innerHTML = '<div class="text-center p-5"><i class="fas fa-spinner fa-spin fa-2x"></i><p class="mt-2">Loading notifications...</p></div>';
+        }
 
         // 1. Fetch unread messages
-        const messagesUrl = `${API_CONFIG.BASE_URL}/api/messages/conversation/${currentUser.id}`;
+        const messagesUrl = `${API_CONFIG.BASE_URL}/api/messages/conversations`;
         const messagesResponse = await fetch(messagesUrl, { headers: getAuthHeaders() });
         let messages = [];
         if (messagesResponse.ok) {
@@ -85,19 +89,23 @@ async function loadNotifications(filter = 'all') {
             properties = await propertiesResponse.json();
         }
 
-        // Convert messages to notification objects
+        // Convert conversations with unread messages to notification objects
         let notifications = messages
-            .filter(m => !m.isRead && m.receiverId._id === currentUser.id)
-            .map(m => ({
-                id: m._id,
-                type: 'message',
-                title: `New message from ${m.senderId.name}`,
-                content: m.content,
-                timestamp: new Date(m.createdAt),
-                isRead: false,
-                icon: '💬',
-                link: `messages.html?userId=${m.senderId._id}`
-            }));
+            .filter(conv => conv.unreadCount > 0)
+            .map(conv => {
+                const isBuyer = currentUser.id === conv.buyerId._id;
+                const sender = isBuyer ? conv.sellerId : conv.buyerId;
+                return {
+                    id: conv._id,
+                    type: 'message',
+                    title: `New message from ${sender.name}`,
+                    content: conv.lastMessage || 'Sent you a message',
+                    timestamp: new Date(conv.updatedAt),
+                    isRead: false,
+                    icon: '💬',
+                    link: `messages.html?conversationId=${conv._id}`
+                };
+            });
 
         // Convert property statuses to notification objects
         properties.forEach(p => {
@@ -150,11 +158,26 @@ async function loadNotifications(filter = 'all') {
         else if (filter === 'property') filtered = notifications.filter(n => n.type === 'property');
         else if (filter === 'message') filtered = notifications.filter(n => n.type === 'message');
 
-        displayNotifications(filtered);
+        // Update Sidebar and Header Badges
+        const unreadCount = notifications.filter(n => !n.isRead).length;
+
+        ['header-notification-badge', 'sidebar-notification-badge'].forEach(id => {
+            const badge = document.getElementById(id);
+            if (badge) {
+                badge.textContent = unreadCount;
+                badge.style.display = unreadCount > 0 ? 'inline-block' : 'none';
+            }
+        });
+
+        if (hasContainer) {
+            displayNotifications(filtered);
+        }
 
     } catch (error) {
         console.error('Error loading notifications:', error);
-        container.innerHTML = '<p class="text-center text-danger">Failed to load notifications.</p>';
+        if (hasContainer) {
+            container.innerHTML = '<p class="text-center text-danger">Failed to load notifications.</p>';
+        }
     }
 }
 
@@ -240,8 +263,31 @@ document.addEventListener('DOMContentLoaded', () => {
     const markAllBtn = document.getElementById('mark-all-read');
     if (markAllBtn) {
         markAllBtn.onclick = async () => {
-            // Simulating for now or we'd need a bulk endpoint
-            showNotification('Feature coming soon');
+            try {
+                const response = await fetch(`${API_CONFIG.BASE_URL}/api/messages/read-all`, {
+                    method: 'PUT',
+                    headers: getAuthHeaders()
+                });
+                if (response.ok) {
+                    showNotification('All notifications cleared', true);
+                    loadNotifications(getCurrentFilter());
+                    if (typeof updateNotificationBadge === 'function') updateNotificationBadge();
+                } else {
+                    showNotification('Failed to clear notifications', false);
+                }
+            } catch (error) {
+                console.error('Bulk read error:', error);
+                showNotification('Connection error', false);
+            }
+        };
+    }
+
+    const clearAllBtn = document.getElementById('clear-notifications');
+    if (clearAllBtn) {
+        clearAllBtn.onclick = () => {
+            showNotification('Notification history cleared (locally)', true);
+            const container = document.getElementById('notifications-container');
+            if (container) container.innerHTML = '<div class="text-center p-5 text-muted"><p>No notifications.</p></div>';
         };
     }
 });

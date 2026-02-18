@@ -5,91 +5,92 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Properties - Land Mart</title>
-    <link rel="stylesheet" href="css/style.css">
-    <!-- Inter Font -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="/css/properties-styles.css">
+    <!-- Premium Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Poppins:wght@600;700;800&display=swap"
         rel="stylesheet">
     <!-- Font Awesome for icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- API Configuration -->
-    <script src="js/api-config.js"></script>
+    <script src="https://cdn.socket.io/4.6.0/socket.io.min.js"></script>
+    <script src="/js/api-config.js"></script>
 </head>
 
 <body>
-    <!-- Header -->
+    <!-- Premium Navbar -->
     <header>
-        <div class="container">
-            <nav class="navbar">
+        <nav class="navbar">
+            <div class="container">
                 <a href="index.html" class="navbar-brand">Land Mart</a>
                 <ul class="navbar-nav">
                     <li><a href="index.html" class="nav-link">Home</a></li>
                     <li><a href="properties.html" class="nav-link active">Properties</a></li>
                     <li><a href="unified-dashboard.html" class="nav-link">Dashboard</a></li>
-                    <li><a href="messages.html" class="nav-link">Messages</a></li>
-                    <li><a href="register.html" class="nav-link">Register</a></li>
-                    <li><a href="login.html" class="nav-link">Login</a></li>
+                    <li><a href="messages.html" class="nav-link">Messages <span id="nav-message-badge" class="badge"
+                                style="display:none; background:#ef4444; color:white; border-radius:50%; padding:2px 6px; font-size:10px; vertical-align:top;">0</span></a>
+                    </li>
+                    <li><a href="login.html" class="btn btn-primary btn-sm">Get Started</a></li>
                 </ul>
                 <button class="mobile-menu-button">
                     <i class="fas fa-bars"></i>
                 </button>
-            </nav>
-        </div>
+            </div>
+        </nav>
     </header>
 
     <!-- Properties Hero Banner -->
     <section class="properties-hero">
         <div class="hero-overlay"></div>
-        <div class="container hero-content">
+        <div class="hero-content">
             <h1 class="hero-title">Find Your Perfect Land</h1>
-            <p class="hero-subtitle">Browse through our extensive collection of premium land properties</p>
+            <p class="hero-subtitle">Browse through our extensive collection of premium land properties. Verified
+                listings, direct connections.</p>
         </div>
     </section>
 
-    <!-- Breadcrumb -->
-    <nav aria-label="breadcrumb" class="breadcrumb-container">
-        <div class="container">
-            <ol class="breadcrumb">
-                <li class="breadcrumb-item"><a href="index.html">Home</a></li>
-                <li class="breadcrumb-item active" aria-current="page">Properties</li>
-            </ol>
-        </div>
-    </nav>
-
     <!-- Main Content -->
     <main class="properties-main">
-        <div class="container">
-            <div class="properties-layout">
-                <!-- Properties Content (Full Width) -->
-                <div class="properties-content" style="width: 100%;">
-                    <!-- Top Bar -->
-                    <div class="properties-topbar">
-                        <div class="results-info">
-                            0 properties available
-                        </div>
-                    </div>
+        <div class="properties-layout">
 
-                    <!-- Properties Grid -->
+            <!-- Breadcrumb -->
+            <nav aria-label="breadcrumb" class="breadcrumb-container"
+                style="background: transparent; border: none; padding-top: 0;">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="index.html">Home</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">Properties</li>
+                </ol>
+            </nav>
+
+            <!-- Properties Content -->
+            <div class="properties-content">
+                <!-- Top Bar -->
+                <div class="properties-topbar">
+                    <div class="results-info">
+                        Showing premium properties
+                    </div>
+                    <!-- Filter/Sort could go here -->
+                </div>
+
+                <!-- Properties Grid -->
+                <!-- The ID listed-properties-section is used by main.js to target standard properties -->
+                <div id="listed-properties-section">
                     <div class="properties-list properties-grid">
                         <!-- Properties will be dynamically loaded here -->
                         <div class="no-properties-message">
-                            <p>Loading properties...</p>
+                            <i class="fas fa-spinner fa-spin fa-3x"
+                                style="color: var(--primary); margin-bottom: 1rem;"></i>
+                            <p>Loading premium properties...</p>
                         </div>
-                    </div> <!-- Pagination -->
-                    <div class="pagination-container">
-                        <nav aria-label="Properties pagination">
-                            <ul class="pagination">
-                                <li class="page-item disabled">
-                                    <a class="page-link" href="#" tabindex="-1">Previous</a>
-                                </li>
-                                <li class="page-item active"><a class="page-link" href="#">1</a></li>
-                                <li class="page-item"><a class="page-link" href="#">2</a></li>
-                                <li class="page-item"><a class="page-link" href="#">3</a></li>
-                                <li class="page-item">
-                                    <a class="page-link" href="#">Next</a>
-                                </li>
-                            </ul>
-                        </nav>
                     </div>
+                </div>
+
+                <!-- Pagination -->
+                <div class="pagination-container" id="pagination-container">
+                    <!-- Pagination will be dynamically loaded here -->
                 </div>
             </div>
         </div>
@@ -100,8 +101,9 @@
         <div class="container">
             <div class="footer-content">
                 <div class="footer-column">
-                    <h3 class="footer-heading">Land Mart</h3>
-                    <p>Your trusted platform for buying and selling land properties across India.</p>
+                    <h3>Land Mart</h3>
+                    <p style="color: var(--gray-400); margin-top: 1rem;">Your trusted platform for buying and selling
+                        land properties.</p>
                     <div class="social-links">
                         <a href="#"><i class="fab fa-facebook-f"></i></a>
                         <a href="#"><i class="fab fa-twitter"></i></a>
@@ -111,28 +113,26 @@
                 </div>
 
                 <div class="footer-column">
-                    <h3 class="footer-heading">Quick Links</h3>
+                    <h3>Quick Links</h3>
                     <ul class="footer-links">
                         <li><a href="index.html">Home</a></li>
+                        <li><a href="properties.html">Properties</a></li>
                         <li><a href="unified-dashboard.html">Dashboard</a></li>
                         <li><a href="messages.html">Messages</a></li>
-                        <li><a href="login.html">Login</a></li>
                     </ul>
                 </div>
 
                 <div class="footer-column">
-                    <h3 class="footer-heading">Categories</h3>
+                    <h3>Categories</h3>
                     <ul class="footer-links">
                         <li><a href="#">Agricultural Land</a></li>
                         <li><a href="#">Commercial Plots</a></li>
                         <li><a href="#">Residential Land</a></li>
-                        <li><a href="#">Industrial Land</a></li>
-                        <li><a href="#">Farm Houses</a></li>
                     </ul>
                 </div>
 
                 <div class="footer-column">
-                    <h3 class="footer-heading">Contact Us</h3>
+                    <h3>Contact Us</h3>
                     <ul class="footer-links">
                         <li><i class="fas fa-map-marker-alt"></i> Chennai, Tamil Nadu</li>
                         <li><i class="fas fa-phone"></i> +91 98765 43210</li>
@@ -145,17 +145,13 @@
                 <p>&copy; 2025 Land Mart. All rights reserved.</p>
                 <div class="legal-links">
                     <a href="#">Privacy Policy</a> |
-                    <a href="#">Terms of Service</a> |
-                    <a href="#">Cookie Policy</a>
+                    <a href="#">Terms of Service</a>
                 </div>
             </div>
         </div>
     </footer>
 
-    <script src="js/main.js"></script>
-    <script>
-        // Logic handled in main.js
-    </script>
+    <script src="/js/main.js"></script>
 </body>
 
 </html>

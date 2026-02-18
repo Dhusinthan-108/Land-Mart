@@ -35,14 +35,21 @@ const propertySchema = new mongoose.Schema({
     status: {
         type: String,
         enum: ['available', 'pending', 'sold', 'pending_approval'],
-        default: 'pending_approval'
+        default: 'available'
     },
     images: [{
         type: String
     }]
 }, {
-    timestamps: true // This will automatically add createdAt and updatedAt fields
+    timestamps: true
 });
+
+// Add indexes for frequently queried fields
+propertySchema.index({ createdAt: -1 });
+propertySchema.index({ status: 1 });
+propertySchema.index({ ownerId: 1 });
+propertySchema.index({ price: 1 });
+propertySchema.index({ location: 'text', title: 'text' });
 
 // Create the Property model
 const Property = mongoose.model('Property', propertySchema);

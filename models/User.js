@@ -31,19 +31,7 @@ const userSchema = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Property'
     }],
-    // Notification preferences
-    emailNotifications: {
-        type: Boolean,
-        default: true
-    },
-    messageNotifications: {
-        type: Boolean,
-        default: true
-    },
-    propertyUpdates: {
-        type: Boolean,
-        default: true
-    },
+
     // Privacy settings
     profilePublic: {
         type: Boolean,
@@ -62,6 +50,26 @@ const userSchema = new mongoose.Schema({
         type: Boolean,
         default: false
     },
+    twoFactorSecret: {
+        type: String,
+        default: null
+    },
+    backupCodes: [{
+        type: String
+    }],
+    securityPin: {
+        type: String,
+        default: null
+    },
+    loginHistory: [{
+        timestamp: {
+            type: Date,
+            default: Date.now
+        },
+        ipAddress: String,
+        device: String,
+        userAgent: String
+    }],
     isActive: {
         type: Boolean,
         default: true

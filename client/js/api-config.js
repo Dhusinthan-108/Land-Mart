@@ -3,9 +3,7 @@
 
 const API_CONFIG = {
     // Base URL for API endpoints
-    BASE_URL: (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
-        ? 'http://localhost:5503'
-        : window.location.origin,
+    BASE_URL: window.location.origin,
 
     // API Endpoints
     ENDPOINTS: {
@@ -28,11 +26,12 @@ const API_CONFIG = {
         UNSAVE_PROPERTY: '/api/properties/:id/unsave',
 
         // Message endpoints
-        GET_MESSAGES: '/api/messages/conversations',
+        GET_CONVERSATIONS: '/api/messages/conversations',
+        GET_MESSAGES: '/api/messages/detail/:conversationId',
         SEND_MESSAGE: '/api/messages',
-        GET_CONVERSATION_MESSAGES: '/api/messages/conversation/:conversationId',
-        GET_CONVERSATION: '/api/messages/conversation/:userId',
-        CONVERSATIONS: '/api/messages/conversations',
+        START_CONVERSATION: '/api/messages/start',
+        MARK_READ: '/api/messages/read/:conversationId',
+        CHECK_CONVERSATION: '/api/messages/check/:propertyId',
 
         // App settings
         GET_SETTINGS: '/api/app-settings',
@@ -67,7 +66,8 @@ async function apiCall(endpoint, options = {}) {
     };
 
     // Add auth token if available
-    const token = localStorage.getItem('token');
+    const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+    const token = currentUser ? currentUser.token : null;
     if (token) {
         defaultOptions.headers['Authorization'] = `Bearer ${token}`;
     }

@@ -37,7 +37,7 @@ async function loadPropertyDetails(propertyId) {
         // Display property details
         displayPropertyDetails(property);
 
-        // Enable messaging from this property detail page
+        // Setup Contact Seller button
         setupContactSeller(property);
 
         // Add owner-specific actions
@@ -121,64 +121,7 @@ function displayPropertyDetails(property) {
     }
 }
 
-async function setupContactSeller(property) {
-    const contactButton = document.getElementById('contact-seller-btn');
-    if (!contactButton) {
-        return;
-    }
 
-    contactButton.addEventListener('click', async function () {
-        const currentUser = JSON.parse(localStorage.getItem('currentUser'));
-        if (!currentUser) {
-            showNotification('Please log in to message the seller.', false);
-            window.location.href = 'login.html';
-            return;
-        }
-
-        const sellerId = property?.ownerId?._id || property?.ownerId;
-        if (!sellerId) {
-            showNotification('Seller information is not available for this property.', false);
-            return;
-        }
-
-        if (currentUser.id === (sellerId._id || sellerId)) {
-            showNotification('You are the seller for this property.', false);
-            return;
-        }
-
-        // Check if the property is liked/saved
-        const savedProperties = JSON.parse(localStorage.getItem('savedProperties')) || [];
-        const isLiked = savedProperties.includes(property._id);
-
-        if (!isLiked) {
-            showNotification('You must "Like" (Heart icon) this land first before you can message the seller.', false);
-            const heartBtn = document.querySelector('.save-property-section button');
-            if (heartBtn) {
-                heartBtn.classList.add('pulse-animation');
-                setTimeout(() => heartBtn.classList.remove('pulse-animation'), 2000);
-            }
-            return;
-        }
-
-        // Check if a conversation already exists
-        try {
-            const response = await fetch(`${API_CONFIG.BASE_URL}/api/messages/check/${property._id}`, {
-                headers: getAuthHeaders()
-            });
-            const data = await response.json();
-
-            if (data.exists) {
-                window.location.href = `messages.html?conversationId=${data.conversationId}`;
-            } else {
-                // If no conversation exists, we can still go to messages.html but we'll need to start one
-                window.location.href = `messages.html?propertyId=${property._id}&userId=${sellerId._id || sellerId}&start=true`;
-            }
-        } catch (error) {
-            console.error('Error checking conversation:', error);
-            window.location.href = `messages.html?propertyId=${property._id}&userId=${sellerId._id || sellerId}`;
-        }
-    });
-}
 
 function addOwnerActions(property) {
     const currentUser = JSON.parse(localStorage.getItem('currentUser'));
@@ -292,12 +235,7 @@ async function toggleSaveProperty(propertyId, buttonElement) {
             buttonElement.classList.add('saved');
             showNotification('Property saved! You can now message the seller.', true);
 
-            // Highlight the message button
-            const contactBtn = document.getElementById('contact-seller-btn');
-            if (contactBtn) {
-                contactBtn.classList.add('highlight-animation');
-                setTimeout(() => contactBtn.classList.remove('highlight-animation'), 3000);
-            }
+
         }
     }
 }
@@ -447,4 +385,53 @@ function showNotification(message, isSuccess = true) {
     setTimeout(() => {
         notification.remove();
     }, 3000);
+}
+
+// Setup Contact Seller button
+async function setupContactSeller(property) {
+    const contactButton = document.getElementById('contact-seller-btn');
+    if (!contactButton) return;
+
+    contactButton.addEventListener('click', async function () {
+        const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+        if (!currentUser) {
+            showNotification('Please log in to contact the seller.', false);
+            window.location.href = 'login.html';
+            return;
+        }
+
+        const sellerId = property?.ownerId?._id || property?.ownerId;
+        if (!sellerId) {
+            showNotification('Seller information is not available.', false);
+            return;
+        }
+
+        if (currentUser.id === sellerId) {
+            showNotification('This is your own property.', false);
+            return;
+        }
+
+        try {
+            // Start a conversation
+            const response = await fetch(getApiUrl(API_CONFIG.ENDPOINTS.START_CONVERSATION), {
+                method: 'POST',
+                headers: getAuthHeaders(),
+                body: JSON.stringify({
+                    propertyId: property._id,
+                    initialMessage: `Hi, I'm interested in ${property.title}`
+                })
+            });
+
+            if (response.ok) {
+                const conversation = await response.json();
+                const conversationId = conversation._id || conversation.id;
+                window.location.href = `messages.html?conversationId=${conversationId}`;
+            } else {
+                showNotification('Failed to start conversation', false);
+            }
+        } catch (error) {
+            console.error('Error starting conversation:', error);
+            showNotification('Error starting conversation', false);
+        }
+    });
 }
