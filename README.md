@@ -67,6 +67,15 @@ npm start
 ```
 The application will run with `NODE_ENV=production` optimizations.
 
+### Local Development
+```bash
+node server.js
+```
+Or if you have a dev script configured in package.json:
+```bash
+npm run dev
+```
+
 ## Prerequisites
 
 - Node.js (v14 or higher)
@@ -92,16 +101,18 @@ Create a `.env` file in the root directory with the following environment variab
 
 ```env
 # MongoDB Connection String
-DB_HOST=mongodb://localhost:27017/landmart
-DB_NAME=landmart
+MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/landmart?retryWrites=true&w=majority
 
 # Server Configuration
-PORT=5500
+PORT=5503
 HOST=localhost
 
 # JWT Configuration
-JWT_SECRET=your-jwt-secret-key
+JWT_SECRET=supersecretkey
 JWT_EXPIRES_IN=24h
+
+# Environment
+NODE_ENV=production
 
 # Other Configurations (optional)
 STRIPE_PUBLIC_KEY=
@@ -123,7 +134,7 @@ npm run dev
 npm start
 ```
 
-The application will be available at `http://localhost:5500`
+The application will be available at `http://localhost:5503`
 
 ## Project Structure
 

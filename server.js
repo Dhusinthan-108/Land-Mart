@@ -173,15 +173,9 @@ if (process.env.NODE_ENV === 'development') {
 }
 
 // Connect to MongoDB
-const mongoURI = process.env.DB_HOST || 'mongodb://localhost:27017/landmart';
-console.log('Attempting to connect to MongoDB with URI:', mongoURI.substring(0, 50) + '...'); // Log first 50 chars for security
-mongoose.connect(mongoURI)
-  .then(() => {
-    console.log('Connected to MongoDB');
-  })
-  .catch((error) => {
-    console.error('MongoDB connection error:', error);
-  });
+mongoose.connect(process.env.MONGODB_URI)
+  .then(() => console.log("MongoDB Connected"))
+  .catch(err => console.log(err));
 
 // Start server
 server.listen(PORT, () => {
